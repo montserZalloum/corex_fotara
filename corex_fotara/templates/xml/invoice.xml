@@ -8,19 +8,15 @@
     <cbc:ID>{{ invoice.custom_jofotara_id }}</cbc:ID>
     <cbc:UUID>{{ invoice.custom_jofotara_uuid }}</cbc:UUID>
     <cbc:IssueDate>{{ issue_date }}</cbc:IssueDate>
+    <cbc:IssueTime>{{ issue_time }}</cbc:IssueTime>
     <cbc:InvoiceTypeCode name="{{ invoice_type_name }}">{{ invoice_type_code }}</cbc:InvoiceTypeCode>
+    {%- if invoice.remarks %}
+    <cbc:Note>{{ invoice.remarks | e }}</cbc:Note>
+    {%- endif %}
     <cbc:DocumentCurrencyCode>JOD</cbc:DocumentCurrencyCode>
     <cbc:TaxCurrencyCode>JOD</cbc:TaxCurrencyCode>
-    {% if invoice.remarks %}
-    <cbc:Note>{{ invoice.remarks | e }}</cbc:Note>
-    {% endif %}
 
-    <cac:AdditionalDocumentReference>
-        <cbc:ID>ICV</cbc:ID>
-        <cbc:UUID>{{ invoice.custom_jofotara_icv }}</cbc:UUID>
-    </cac:AdditionalDocumentReference>
-
-    {% if billing_reference %}
+    {%- if billing_reference %}
     <cac:BillingReference>
         <cac:InvoiceDocumentReference>
             <cbc:ID>{{ billing_reference.id }}</cbc:ID>
@@ -28,19 +24,33 @@
             <cbc:DocumentDescription>{{ billing_reference.total }}</cbc:DocumentDescription>
         </cac:InvoiceDocumentReference>
     </cac:BillingReference>
-    {% endif %}
+    {%- endif %}
+
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>ICV</cbc:ID>
+        <cbc:UUID>{{ invoice.custom_jofotara_icv }}</cbc:UUID>
+    </cac:AdditionalDocumentReference>
+
+    {%- if billing_reference and billing_reference.original_total %}
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>originalInvoiceTotal</cbc:ID>
+        <cbc:UUID>{{ billing_reference.original_total }}</cbc:UUID>
+    </cac:AdditionalDocumentReference>
+    {%- endif %}
 
     <cac:AccountingSupplierParty>
         <cac:Party>
             <cac:PostalAddress>
+                {%- if seller.postal_code %}
                 <cbc:PostalZone>{{ seller.postal_code }}</cbc:PostalZone>
-                <cbc:CountrySubentityCode>{{ seller.city_code }}</cbc:CountrySubentityCode>
+                {%- endif %}
+                <cbc:CountrySubentityCode>{{ seller.city_code or 'JO-AM' }}</cbc:CountrySubentityCode>
                 <cac:Country>
                     <cbc:IdentificationCode>JO</cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:CompanyID schemeID="VAT">{{ seller.tax_id }}</cbc:CompanyID>
+                <cbc:CompanyID>{{ seller.tax_id }}</cbc:CompanyID>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
@@ -53,25 +63,38 @@
 
     <cac:AccountingCustomerParty>
         <cac:Party>
+            {%- if buyer.id_value %}
             <cac:PartyIdentification>
                 <cbc:ID schemeID="{{ buyer.id_scheme }}">{{ buyer.id_value }}</cbc:ID>
             </cac:PartyIdentification>
+            {%- endif %}
             <cac:PostalAddress>
+                {%- if buyer.postal_code %}
                 <cbc:PostalZone>{{ buyer.postal_code }}</cbc:PostalZone>
+                {%- endif %}
+                {%- if buyer.city_code %}
                 <cbc:CountrySubentityCode>{{ buyer.city_code }}</cbc:CountrySubentityCode>
+                {%- endif %}
                 <cac:Country>
                     <cbc:IdentificationCode>{{ buyer.country_code }}</cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+            {%- if buyer.name %}
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName>{{ buyer.name | e }}</cbc:RegistrationName>
             </cac:PartyLegalEntity>
-            {% if buyer.phone %}
-            <cac:Contact>
-                <cbc:Telephone>{{ buyer.phone }}</cbc:Telephone>
-            </cac:Contact>
-            {% endif %}
+            {%- endif %}
         </cac:Party>
+        {%- if buyer.phone %}
+        <cac:AccountingContact>
+            <cbc:Telephone>{{ buyer.phone }}</cbc:Telephone>
+        </cac:AccountingContact>
+        {%- endif %}
     </cac:AccountingCustomerParty>
 
     <cac:SellerSupplierParty>
@@ -82,15 +105,24 @@
         </cac:Party>
     </cac:SellerSupplierParty>
 
-    {% if is_return %}
+    {%- if is_return %}
     <cac:PaymentMeans>
-        <cbc:PaymentMeansCode>10</cbc:PaymentMeansCode>
+        <cbc:PaymentMeansCode listID="UN/ECE 4461">10</cbc:PaymentMeansCode>
+        <cbc:InstructionNote>No Reason</cbc:InstructionNote>
     </cac:PaymentMeans>
-    {% endif %}
+    {%- endif %}
+
+    {%- if totals._discount_amount_raw > 0 %}
+    <cac:AllowanceCharge>
+        <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+        <cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>
+        <cbc:Amount currencyID="JOD">{{ totals.discount_amount }}</cbc:Amount>
+    </cac:AllowanceCharge>
+    {%- endif %}
 
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="JOD">{{ totals.total_tax }}</cbc:TaxAmount>
-        {% for tax_group in tax_subtotals %}
+        {%- for tax_group in tax_subtotals %}
         <cac:TaxSubtotal>
             <cbc:TaxableAmount currencyID="JOD">{{ tax_group.taxable_amount }}</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="JOD">{{ tax_group.tax_amount }}</cbc:TaxAmount>
@@ -102,7 +134,7 @@
                 </cac:TaxScheme>
             </cac:TaxCategory>
         </cac:TaxSubtotal>
-        {% endfor %}
+        {%- endfor %}
     </cac:TaxTotal>
 
     <cac:LegalMonetaryTotal>
@@ -112,7 +144,7 @@
         <cbc:PayableAmount currencyID="JOD">{{ totals.payable }}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
 
-    {% for item in line_items %}
+    {%- for item in line_items %}
     <cac:InvoiceLine>
         <cbc:ID>{{ item.idx }}</cbc:ID>
         <cbc:InvoicedQuantity unitCode="{{ item.uom_code }}">{{ item.qty }}</cbc:InvoicedQuantity>
@@ -120,21 +152,28 @@
         <cac:TaxTotal>
             <cbc:TaxAmount currencyID="JOD">{{ item.tax_amount }}</cbc:TaxAmount>
             <cbc:RoundingAmount currencyID="JOD">{{ item.rounding_amount }}</cbc:RoundingAmount>
+            <cac:TaxSubtotal>
+                <cbc:TaxAmount currencyID="JOD">{{ item.tax_amount }}</cbc:TaxAmount>
+                <cac:TaxCategory>
+                    <cbc:ID>{{ item.tax_category }}</cbc:ID>
+                    <cbc:Percent>{{ item.tax_percent }}</cbc:Percent>
+                    <cac:TaxScheme>
+                        <cbc:ID>VAT</cbc:ID>
+                    </cac:TaxScheme>
+                </cac:TaxCategory>
+            </cac:TaxSubtotal>
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Name>{{ item.name | e }}</cbc:Name>
-            <cac:ClassifiedTaxCategory>
-                <cbc:ID>{{ item.tax_category }}</cbc:ID>
-                <cbc:Percent>{{ item.tax_percent }}</cbc:Percent>
-                <cac:TaxScheme>
-                    <cbc:ID>VAT</cbc:ID>
-                </cac:TaxScheme>
-            </cac:ClassifiedTaxCategory>
         </cac:Item>
         <cac:Price>
             <cbc:PriceAmount currencyID="JOD">{{ item.unit_price }}</cbc:PriceAmount>
+            <cac:AllowanceCharge>
+                <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+                <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
+                <cbc:Amount currencyID="JOD">0.000000000</cbc:Amount>
+            </cac:AllowanceCharge>
         </cac:Price>
     </cac:InvoiceLine>
-    {% endfor %}
-
+    {%- endfor %}
 </Invoice>

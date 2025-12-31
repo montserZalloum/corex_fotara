@@ -53,6 +53,14 @@ def add_company_jofotara_fields():
 				"depends_on": "eval:doc.custom_enable_jofotara",
 				"description": "Automatically send invoice to JoFotara when submitted.",
 			},
+			{
+				"fieldname": "custom_jofotara_vat_registered",
+				"fieldtype": "Check",
+				"label": "Registered for Sales Tax (VAT)",
+				"insert_after": "custom_jofotara_auto_send",
+				"depends_on": "eval:doc.custom_enable_jofotara",
+				"description": "You are authorized to collect 16%, 4%, or 0% Sales Tax",
+			},
 			# API Credentials Section
 			{
 				"fieldname": "jofotara_credentials_section",

@@ -22,6 +22,16 @@ frappe.ui.form.on("Sales Invoice", {
 				render_qr_preview(frm);
 			});
 	},
+
+	validate: function (frm) {
+		// Validate VAT registration before allowing taxes
+		return validate_vat_registration_and_taxes(frm);
+	},
+
+	before_submit: function (frm) {
+		// Additional validation before submit
+		return validate_vat_registration_and_taxes(frm);
+	},
 });
 
 function add_jofotara_indicator(frm) {
@@ -126,4 +136,58 @@ function render_qr_preview(frm) {
 		console.error("Error generating QR code:", e);
 		container.html('<div class="alert alert-danger">' + __("Error generating QR code") + "</div>");
 	}
+}
+
+function validate_vat_registration_and_taxes(frm) {
+	// Skip validation if no company selected
+	if (!frm.doc.company) {
+		return true;
+	}
+
+	// Check if there are any taxes in the invoice
+	const has_taxes = frm.doc.taxes && frm.doc.taxes.length > 0;
+
+	// If no taxes, no need to validate
+	if (!has_taxes) {
+		return true;
+	}
+
+	// Get company settings synchronously
+	return new Promise((resolve, reject) => {
+		frappe.db
+			.get_value("Company", frm.doc.company, ["custom_enable_jofotara", "custom_jofotara_vat_registered"])
+			.then((r) => {
+				// Skip validation if JoFotara is not enabled
+				if (!r.message || !r.message.custom_enable_jofotara) {
+					resolve(true);
+					return;
+				}
+
+				const vat_registered = r.message.custom_jofotara_vat_registered;
+
+				// If company is not VAT registered but has taxes, show error
+				if (!vat_registered && has_taxes) {
+					frappe.msgprint({
+						title: __("VAT Registration Required"),
+						indicator: "red",
+						message: __(
+							"<strong>Cannot add taxes to this invoice.</strong><br><br>" +
+							"The company <strong>{0}</strong> is not registered for VAT in JoFotara.<br><br>" +
+							"To add taxes to invoices, please enable <strong>VAT Registered</strong> in the Company settings.<br><br>" +
+							"<em>Path: Company → {0} → JoFotara Settings → VAT Registered</em>",
+							[frm.doc.company]
+						),
+					});
+					frappe.validated = false;
+					reject();
+					return;
+				}
+
+				resolve(true);
+			})
+			.catch((err) => {
+				console.error("Error validating VAT registration:", err);
+				resolve(true); // Don't block on error
+			});
+	});
 }

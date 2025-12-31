@@ -29,7 +29,7 @@ def add_company_jofotara_fields():
 				"fieldname": "jofotara_settings_tab",
 				"fieldtype": "Tab Break",
 				"label": "JoFotara Settings",
-				"insert_after": "manufacturing_section",
+				"insert_after": "default_operating_cost_account",
 			},
 			# Basic Settings Section
 			{

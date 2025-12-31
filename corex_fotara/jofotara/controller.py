@@ -140,7 +140,7 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict):
 
 		if result["success"]:
 			# Extract QR code from response (if available)
-			qr_code = result["response"].get("qr_code") or result["response"].get("qrCode") or ""
+			qr_code = result["response"].get("EINV_QR") or ""
 
 			# Update invoice status
 			frappe.db.set_value(

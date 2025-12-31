@@ -7,6 +7,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 # Jordan city codes based on ISO 3166-2:JO
 JORDAN_CITY_CODES = """
 JO-AM
+JO-AJ
 JO-AQ
 JO-AT
 JO-AZ
@@ -16,8 +17,7 @@ JO-JA
 JO-KA
 JO-MA
 JO-MD
-JO-MN
-"""
+JO-MN"""
 
 
 def add_address_jofotara_fields():

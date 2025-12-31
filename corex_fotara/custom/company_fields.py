@@ -7,6 +7,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 # Jordan city codes based on ISO 3166-2:JO
 JORDAN_CITY_CODES = """
 JO-AM
+JO-AJ
 JO-AQ
 JO-AT
 JO-AZ
@@ -16,8 +17,7 @@ JO-JA
 JO-KA
 JO-MA
 JO-MD
-JO-MN
-"""
+JO-MN"""
 
 
 def add_company_jofotara_fields():
@@ -29,7 +29,7 @@ def add_company_jofotara_fields():
 				"fieldname": "jofotara_settings_tab",
 				"fieldtype": "Tab Break",
 				"label": "JoFotara Settings",
-				"insert_after": "default_holiday_list",
+				"insert_after": "manufacturing_section",
 			},
 			# Basic Settings Section
 			{
@@ -164,7 +164,7 @@ def add_company_jofotara_fields():
 				"label": "UOM Mapping",
 				"insert_after": "jofotara_uom_section",
 				"options": "JoFotara UOM Map",
-			},
+			}
 		]
 	}
 	create_custom_fields(custom_fields)

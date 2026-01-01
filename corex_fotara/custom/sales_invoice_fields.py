@@ -52,6 +52,7 @@ def add_sales_invoice_jofotara_fields():
 				"insert_after": "custom_jofotara_payment_type",
 				"read_only": 1,
 				"hidden":1,
+				"no_copy": 1,
 			},
 			{
 				"fieldname": "custom_qr_preview",
@@ -60,6 +61,7 @@ def add_sales_invoice_jofotara_fields():
 				"insert_after": "custom_jofotara_qr",
 				"read_only": 1,
 				"depends_on": "eval:doc.custom_jofotara_qr",
+				"no_copy": 1,
 			},
 			{
 				"fieldname": "custom_jofotara_cb", # Unique name for the break
@@ -76,6 +78,7 @@ def add_sales_invoice_jofotara_fields():
 				"read_only": 1,
 				"in_list_view": 1,
 				"in_standard_filter": 1,
+				"no_copy": 1,
 			},
 			
 			{
@@ -85,6 +88,7 @@ def add_sales_invoice_jofotara_fields():
 				"insert_after": "custom_jofotara_status",
 				"hidden":1,
 				"read_only": 1,
+				"no_copy": 1,
 			},
 			{
 				"fieldname": "custom_jofotara_icv",
@@ -94,6 +98,7 @@ def add_sales_invoice_jofotara_fields():
 				"read_only": 1,
 				"hidden":1,
 				"description": "Sequential audit counter",
+				"no_copy": 1,
 			},
 
 			{
@@ -104,6 +109,7 @@ def add_sales_invoice_jofotara_fields():
 				"read_only": 1,
 				"hidden":1,
 				"description": "Format: [Abbr]-[Date]-[Seq]",
+				"no_copy": 1,
 			},
 		]
 	}

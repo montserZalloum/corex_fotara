@@ -10,18 +10,24 @@
     <cbc:IssueDate>{{ issue_date }}</cbc:IssueDate>
     <cbc:IssueTime>{{ issue_time }}</cbc:IssueTime>
     <cbc:InvoiceTypeCode name="{{ invoice_type_name }}">{{ invoice_type_code }}</cbc:InvoiceTypeCode>
+    
     {%- if invoice.remarks %}
     <cbc:Note>{{ invoice.remarks | e }}</cbc:Note>
     {%- endif %}
+    
     <cbc:DocumentCurrencyCode>JOD</cbc:DocumentCurrencyCode>
     <cbc:TaxCurrencyCode>JOD</cbc:TaxCurrencyCode>
 
+    <!-- CORRECTED BILLING REFERENCE BLOCK -->
     {%- if billing_reference %}
     <cac:BillingReference>
         <cac:InvoiceDocumentReference>
-            <cbc:ID>{{ billing_reference.id }}</cbc:ID>
+            <!-- MANDATORY: ID must be the UUID of the original invoice -->
+            <cbc:ID>{{ billing_reference.uuid }}</cbc:ID>
+            <!-- UUID field is redundant but if sent, must match the ID/UUID -->
             <cbc:UUID>{{ billing_reference.uuid }}</cbc:UUID>
-            <cbc:DocumentDescription>{{ billing_reference.total }}</cbc:DocumentDescription>
+            <!-- Human Readable ID goes in Description -->
+            <cbc:DocumentDescription>{{ billing_reference.id }}</cbc:DocumentDescription>
         </cac:InvoiceDocumentReference>
     </cac:BillingReference>
     {%- endif %}
@@ -108,7 +114,7 @@
     {%- if is_return %}
     <cac:PaymentMeans>
         <cbc:PaymentMeansCode listID="UN/ECE 4461">10</cbc:PaymentMeansCode>
-        <cbc:InstructionNote>No Reason</cbc:InstructionNote>
+        <cbc:InstructionNote>Returns</cbc:InstructionNote>
     </cac:PaymentMeans>
     {%- endif %}
 
@@ -154,7 +160,6 @@
         <cac:AllowanceCharge>
             <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
             <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
-            <!-- Use the Fraction (0.10), not Percentage (10.0) -->
             <cbc:MultiplierFactorNumeric>{{ item.discount_factor }}</cbc:MultiplierFactorNumeric>
             <cbc:Amount currencyID="JOD">{{ item.discount_amount }}</cbc:Amount>
             <cbc:BaseAmount currencyID="JOD">{{ item.gross_amount }}</cbc:BaseAmount>

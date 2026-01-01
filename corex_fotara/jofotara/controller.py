@@ -61,38 +61,66 @@ def on_sales_invoice_cancel(doc, method):
 def send_to_jofotara(invoice_name: str):
 	"""
 	Main entry point for sending invoice to JoFotara.
+	Supports Sales Invoices (388) and Credit Notes (381).
 
-	Phase A: Synchronous ID generation with DB locking
+	Phase A: Synchronous validations and ID generation
 	Phase B: Async XML generation and API call
-
-	Args:
-		invoice_name: The name of the Sales Invoice to send
 	"""
 	invoice = frappe.get_doc("Sales Invoice", invoice_name)
 	company = frappe.get_cached_doc("Company", invoice.company)
 
-	# Validation: Check if JoFotara is enabled
+	# --- Validations ---
+
+	# 1. Check if JoFotara is enabled
 	if not company.custom_enable_jofotara:
 		frappe.throw(_("JoFotara is not enabled for company {0}").format(invoice.company))
 
-	# Validation: Invoice must be submitted
+	# 2. Invoice must be submitted
 	if invoice.docstatus != 1:
 		frappe.throw(_("Invoice must be submitted before sending to JoFotara"))
 
-	# Validation: Already successfully sent
+	# 3. Check if already successfully sent
 	if invoice.custom_jofotara_status == "Success":
 		frappe.throw(_("This invoice has already been successfully sent to JoFotara"))
 
-	# Phase A: Generate IDs (synchronous, with DB lock)
+	# 4. Credit Note (Return) specific validations
+	if invoice.is_return:
+		if not invoice.return_against:
+			frappe.throw(_("Credit Note must be created against an existing Sales Invoice (Return Against field is empty)."))
+
+		# Fetch status and UUID of the original invoice
+		# We use get_value for performance instead of loading the whole doc
+		original_data = frappe.db.get_value(
+			"Sales Invoice",
+			invoice.return_against,
+			["custom_jofotara_status", "custom_jofotara_uuid"],
+			as_dict=True
+		)
+
+		if not original_data:
+			frappe.throw(_("Original invoice {0} not found.").format(invoice.return_against))
+
+		if original_data.custom_jofotara_status != "Success" or not original_data.custom_jofotara_uuid:
+			frappe.throw(
+				_("Cannot send Credit Note. The original invoice ({0}) has not been successfully sent to JoFotara yet.").format(
+					invoice.return_against
+				)
+			)
+
+	# --- Phase A: Synchronous Processing ---
+
+	# Generate IDs (synchronous, with DB lock inside the manager)
 	id_manager = JoFotaraIDManager(invoice.company)
 	identifiers = id_manager.generate_identifiers(invoice)
 
-	# Commit to release the lock before async phase
+	# Commit to release the lock and save IDs before async phase
 	frappe.db.commit()
 
+	# Capture current user for realtime notification
 	current_user = frappe.session.user
 
-	# Phase B: Enqueue async processing
+	# --- Phase B: Async Processing ---
+
 	frappe.enqueue(
 		"corex_fotara.jofotara.controller.process_jofotara_submission",
 		queue="default",
@@ -102,8 +130,11 @@ def send_to_jofotara(invoice_name: str):
 		now=frappe.flags.in_test,  # Run synchronously in tests
 	)
 
+	# UI Feedback
+	msg = _("Credit Note queued for JoFotara") if invoice.is_return else _("Invoice queued for JoFotara")
+
 	frappe.msgprint(
-		_("Invoice {0} sent to JoFotara").format(invoice_name),
+		msg,
 		indicator="blue",
 		alert=True
 	)

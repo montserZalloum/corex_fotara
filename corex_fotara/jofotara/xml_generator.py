@@ -177,26 +177,43 @@ class JoFotaraXMLGenerator:
 		return self._customer_country
 
 	def _get_billing_reference(self) -> dict | None:
-		"""Get billing reference for return invoices."""
+		"""
+		Get billing reference for return invoices.
+		Fetches UUID and ID directly from the Original Invoice in the Database.
+		"""
+		# 1. Validation: Is this a return?
 		if not self.invoice.is_return or not self.invoice.return_against:
 			return None
 
-		original = frappe.get_doc("Sales Invoice", self.invoice.return_against)
+		# 2. Fetch Original Data directly from DB (ignoring current doc fields)
+		original_data = frappe.db.get_value(
+			"Sales Invoice",
+			self.invoice.return_against,
+			["custom_jofotara_uuid", "custom_jofotara_id", "grand_total"],
+			as_dict=True
+		)
 
-		if not original.custom_jofotara_uuid:
+		# 3. Validation: Does original exist?
+		if not original_data:
+			frappe.throw(_("Original invoice {0} not found.").format(self.invoice.return_against))
+
+		# 4. Validation: Was original sent?
+		if not original_data.custom_jofotara_uuid:
 			frappe.throw(
 				_("Original invoice {0} has not been sent to JoFotara. Please send the original invoice first.").format(
 					self.invoice.return_against
 				)
 			)
 
-		total_formatted = self._format_amount(abs(original.grand_total))
+		# 5. Return data for context
+		# Note: We take absolute value of original total just in case
+		total_formatted = self._format_amount(abs(original_data.grand_total))
 
 		return {
-			"id": original.custom_jofotara_id,
-			"uuid": original.custom_jofotara_uuid,
+			"id": original_data.custom_jofotara_id,      # Use for DocumentDescription
+			"uuid": original_data.custom_jofotara_uuid,  # Use for ID (Mandatory)
 			"total": total_formatted,
-			"original_total": total_formatted,  # Required for originalInvoiceTotal reference
+			"original_total": total_formatted, 
 		}
 
 	def _get_seller_info(self) -> dict:

@@ -15,7 +15,7 @@ def add_customer_jofotara_fields():
 				"label": "Identification Type",
 				"insert_after": "tax_id",
 				"options": "\nNational ID\nTax ID\nPassport",
-				"description": "Required for Credit Sales or invoices over 10,000 JOD",
+				"description": "Required for Credit Sales or invoices over 10,000 JOD (JoFotara)",
 			}
 		]
 	}

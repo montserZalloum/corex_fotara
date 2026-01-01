@@ -9,13 +9,23 @@ def add_sales_invoice_jofotara_fields():
 	"""Add JoFotara tracking fields to Sales Invoice doctype."""
 	custom_fields = {
 		"Sales Invoice": [
+			{
+                "fieldname": "custom_jofotara_enabled",
+                "fieldtype": "Check",
+                "label": "JoFotara Enabled",
+                "fetch_from": "company.custom_enable_jofotara", # Format: link_field.field_name
+                "read_only": 1,
+                "hidden": 1,
+                "insert_after": "amended_from",
+            },
 			# JoFotara Section
 			{
 				"fieldname": "jofotara_section",
 				"fieldtype": "Section Break",
 				"label": "JoFotara Integration",
-				"insert_after": "amended_from",
+				"insert_after": "custom_jofotara_enabled",
 				"collapsible": 1,
+				"depends_on": "eval:doc.custom_jofotara_enabled == 1"
 			},
 			{
 				"fieldname": "custom_jofotara_payment_type",

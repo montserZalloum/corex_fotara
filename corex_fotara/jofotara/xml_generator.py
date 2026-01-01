@@ -348,20 +348,33 @@ class JoFotaraXMLGenerator:
 
 		for idx, item in enumerate(self.invoice.items, 1):
 			qty = abs(item.qty)
-			rate = abs(item.rate)
+
+			# Determine Unit Price (Gross)
 			discount = abs(item.discount_amount or 0)
 
-			# Calculate line extension using exact formula
-			line_extension = self._calculate_line_extension_amount(qty, rate, discount)
+			if discount > 0 and item.price_list_rate:
+				unit_price = abs(item.price_list_rate)
+			else:
+				unit_price = abs(item.rate)
+
+			# Calculate Gross Amount (Base for Discount)
+			gross_amount = qty * unit_price
+
+			# Calculate Discount Factor (Fraction, NOT Percentage)
+			# Example: 10% discount should be 0.10, NOT 10.0
+			discount_factor = 0
+			if gross_amount > 0 and discount > 0:
+				discount_factor = discount / gross_amount
+
+			# Calculate line extension
+			line_extension = self._calculate_line_extension_amount(qty, unit_price, discount)
 
 			# Get tax info
 			tax_rate = self._get_item_tax_rate(item)
 			tax_category = self._get_tax_category(tax_rate)
 
-			# Calculate tax amount using exact formula
+			# Calculate tax amount
 			tax_amount = self._calculate_tax_amount(line_extension, tax_rate)
-
-			# Calculate rounding amount using exact formula
 			rounding_amount = self._calculate_rounding_amount(line_extension, tax_amount)
 
 			items.append(
@@ -370,15 +383,18 @@ class JoFotaraXMLGenerator:
 					"name": item.item_name,
 					"qty": self._format_amount(qty),
 					"uom_code": self.uom_mapping.get(item.uom, "PCE"),
-					"unit_price": self._format_amount(rate),
+					"unit_price": self._format_amount(unit_price),
+					"discount_amount": self._format_amount(discount),
+					"gross_amount": self._format_amount(gross_amount),
+					"discount_factor": self._format_amount(discount_factor),
 					"line_extension": self._format_amount(line_extension),
 					"tax_amount": self._format_amount(tax_amount),
 					"rounding_amount": self._format_amount(rounding_amount),
 					"tax_category": tax_category,
 					"tax_percent": str(tax_rate),
-					# Store raw values for totals calculation
 					"_line_extension": line_extension,
 					"_tax_amount": tax_amount,
+					"_discount_amount_raw": discount,
 				}
 			)
 

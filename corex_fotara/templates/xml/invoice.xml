@@ -149,6 +149,18 @@
         <cbc:ID>{{ item.idx }}</cbc:ID>
         <cbc:InvoicedQuantity unitCode="{{ item.uom_code }}">{{ item.qty }}</cbc:InvoicedQuantity>
         <cbc:LineExtensionAmount currencyID="JOD">{{ item.line_extension }}</cbc:LineExtensionAmount>
+        
+        {%- if item._discount_amount_raw > 0 %}
+        <cac:AllowanceCharge>
+            <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+            <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
+            <!-- Use the Fraction (0.10), not Percentage (10.0) -->
+            <cbc:MultiplierFactorNumeric>{{ item.discount_factor }}</cbc:MultiplierFactorNumeric>
+            <cbc:Amount currencyID="JOD">{{ item.discount_amount }}</cbc:Amount>
+            <cbc:BaseAmount currencyID="JOD">{{ item.gross_amount }}</cbc:BaseAmount>
+        </cac:AllowanceCharge>
+        {%- endif %}
+
         <cac:TaxTotal>
             <cbc:TaxAmount currencyID="JOD">{{ item.tax_amount }}</cbc:TaxAmount>
             <cbc:RoundingAmount currencyID="JOD">{{ item.rounding_amount }}</cbc:RoundingAmount>
@@ -163,16 +175,13 @@
                 </cac:TaxCategory>
             </cac:TaxSubtotal>
         </cac:TaxTotal>
+        
         <cac:Item>
             <cbc:Name>{{ item.name | e }}</cbc:Name>
         </cac:Item>
+        
         <cac:Price>
             <cbc:PriceAmount currencyID="JOD">{{ item.unit_price }}</cbc:PriceAmount>
-            <cac:AllowanceCharge>
-                <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
-                <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
-                <cbc:Amount currencyID="JOD">0.000000000</cbc:Amount>
-            </cac:AllowanceCharge>
         </cac:Price>
     </cac:InvoiceLine>
     {%- endfor %}

@@ -109,7 +109,7 @@
     {%- if is_return %}
     <cac:PaymentMeans>
         <cbc:PaymentMeansCode listID="UN/ECE 4461">10</cbc:PaymentMeansCode>
-        <cbc:InstructionNote>Returns</cbc:InstructionNote>
+        <cbc:InstructionNote>{%- if invoice.remarks %} {{ invoice.remarks | e }} {% else %} Returns {% endif %}</cbc:InstructionNote>
     </cac:PaymentMeans>
     {%- endif %}
 

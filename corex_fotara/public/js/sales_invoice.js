@@ -17,21 +17,7 @@ frappe.ui.form.on("Sales Invoice", {
 				add_send_button(frm);
 			}
 		}
-
-		// Listen for the background job completion
-        frappe.realtime.off("jofotara_submission_complete"); // Prevent duplicate listeners
-        frappe.realtime.on("jofotara_submission_complete", function(data) {
-            if (data.invoice_name === frm.doc.name) {
-                // Show a small popup
-                frappe.show_alert({
-                    message: __("JoFotara Response: " + data.status),
-                    indicator: data.status === "Success" ? "green" : "red"
-                });
-                
-                // Automatically reload the document to show QR and Status
-                frm.reload_doc();
-            }
-        });
+		
 	},
 
 	validate: function (frm) {
@@ -144,3 +130,22 @@ function validate_vat_registration_and_taxes(frm) {
 	}
 	return true;
 }
+
+frappe.realtime.off("jofotara_submission_complete"); // Clear any stale listeners from previous file loads
+frappe.realtime.on("jofotara_submission_complete", function(data) {
+    // 1. Check if a Form is currently open
+    if (!cur_frm || cur_frm.doctype !== "Sales Invoice") return;
+
+    // 2. Check if the open Form is the one that was just processed
+    if (cur_frm.doc.name === data.invoice_name) {
+        
+        // Show Alert
+        frappe.show_alert({
+            message: __("JoFotara Response: " + data.status),
+            indicator: data.status === "Success" ? "green" : "red"
+        });
+
+        // Reload
+        cur_frm.reload_doc();
+    }
+});

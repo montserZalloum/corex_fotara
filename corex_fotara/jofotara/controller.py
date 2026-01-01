@@ -90,12 +90,15 @@ def send_to_jofotara(invoice_name: str):
 	# Commit to release the lock before async phase
 	frappe.db.commit()
 
+	current_user = frappe.session.user
+
 	# Phase B: Enqueue async processing
 	frappe.enqueue(
 		"corex_fotara.jofotara.controller.process_jofotara_submission",
 		queue="default",
 		invoice_name=invoice_name,
 		identifiers=identifiers,
+		triggering_user=current_user,
 		now=frappe.flags.in_test,  # Run synchronously in tests
 	)
 
@@ -106,7 +109,7 @@ def send_to_jofotara(invoice_name: str):
 	)
 
 
-def process_jofotara_submission(invoice_name: str, identifiers: dict):
+def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering_user: str = None):
 	"""
 	Async worker for XML generation and API submission.
 	Creates JoFotara Log on completion/error.
@@ -181,6 +184,18 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict):
 				error=result.get("error", "Unknown error"),
 			)
 
+		frappe.db.commit()
+
+		if triggering_user:
+			frappe.publish_realtime(
+				event="jofotara_submission_complete",
+				message={
+					"invoice_name": invoice_name,
+					"status": "Success" if result["success"] else "Error"
+				},
+				user=triggering_user
+			)
+
 	except Exception as e:
 		# Update invoice status to Error
 		frappe.db.set_value(
@@ -206,7 +221,18 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict):
 			title=f"JoFotara Error: {invoice_name}",
 		)
 
-	frappe.db.commit()
+		frappe.db.commit() # Ensure error logs are committed
+
+		if triggering_user:
+			frappe.publish_realtime(
+				event="jofotara_submission_complete",
+				message={
+					"invoice_name": invoice_name,
+					"status": "Error"
+				},
+				user=triggering_user
+			)
+	
 
 
 def _validate_before_submission(invoice, company):

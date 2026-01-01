@@ -17,6 +17,21 @@ frappe.ui.form.on("Sales Invoice", {
 				add_send_button(frm);
 			}
 		}
+
+		// Listen for the background job completion
+        frappe.realtime.off("jofotara_submission_complete"); // Prevent duplicate listeners
+        frappe.realtime.on("jofotara_submission_complete", function(data) {
+            if (data.invoice_name === frm.doc.name) {
+                // Show a small popup
+                frappe.show_alert({
+                    message: __("JoFotara Response: " + data.status),
+                    indicator: data.status === "Success" ? "green" : "red"
+                });
+                
+                // Automatically reload the document to show QR and Status
+                frm.reload_doc();
+            }
+        });
 	},
 
 	validate: function (frm) {

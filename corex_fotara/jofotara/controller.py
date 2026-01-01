@@ -100,8 +100,9 @@ def send_to_jofotara(invoice_name: str):
 	)
 
 	frappe.msgprint(
-		_("Invoice {0} queued for JoFotara submission (ICV: {1})").format(invoice_name, identifiers["jofotara_icv"]),
+		_("Invoice {0} sent to JoFotara").format(invoice_name),
 		indicator="blue",
+		alert=True
 	)
 
 

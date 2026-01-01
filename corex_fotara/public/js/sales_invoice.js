@@ -82,16 +82,6 @@ function add_send_button(frm) {
 		);
 	}
 
-	// Add link to view logs
-	if (status) {
-		frm.add_custom_button(
-			__("View JoFotara Logs"),
-			function () {
-				frappe.set_route("List", "JoFotara Log", { invoice: frm.doc.name });
-			},
-			__("Actions")
-		);
-	}
 }
 
 function render_qr_preview(frm) {

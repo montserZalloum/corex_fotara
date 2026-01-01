@@ -1,183 +1,131 @@
 // Copyright (c) 2024, Corex and contributors
 // For license information, please see license.txt
-
+console.log('first')
 frappe.ui.form.on("Sales Invoice", {
 	refresh: function (frm) {
-		// Only process for submitted invoices
-		if (frm.doc.docstatus !== 1) return;
+		const is_enabled = frm.doc.custom_jofotara_enabled;
+		const is_historical_success = frm.doc.custom_jofotara_status === "Success";
 
-		// Check if JoFotara is enabled for the company
-		frappe.db
-			.get_value("Company", frm.doc.company, "custom_enable_jofotara")
-			.then((r) => {
-				if (!r.message || !r.message.custom_enable_jofotara) return;
-
-				// Add status indicator
-				add_jofotara_indicator(frm);
-
-				// Add "Send to JoFotara" button if needed
+		if (is_enabled || is_historical_success) {
+			// 1. Clear previous indicators to prevent stacking
+			frm.dashboard.clear_comment_count && frm.dashboard.clear_indicators(); 
+			
+			add_jofotara_indicator(frm);
+			render_qr_preview(frm);
+			
+			if (frm.doc.docstatus === 1 && is_enabled) {
 				add_send_button(frm);
-
-				// Render QR code preview if available
-				render_qr_preview(frm);
-			});
+			}
+		}
 	},
 
 	validate: function (frm) {
-		// Validate VAT registration before allowing taxes
 		return validate_vat_registration_and_taxes(frm);
 	},
 
 	before_submit: function (frm) {
-		// Additional validation before submit
 		return validate_vat_registration_and_taxes(frm);
 	},
 });
 
 function add_jofotara_indicator(frm) {
 	const status = frm.doc.custom_jofotara_status;
+	if (!status) return;
 
-	if (status === "Success") {
-		frm.dashboard.add_indicator(__("JoFotara: Sent"), "green");
-	} else if (status === "Error") {
-		frm.dashboard.add_indicator(__("JoFotara: Error"), "red");
-	} else if (status === "Queued") {
-		frm.dashboard.add_indicator(__("JoFotara: Processing"), "blue");
-	} else if (status === "Pending") {
-		frm.dashboard.add_indicator(__("JoFotara: Pending"), "orange");
-	}
+	const colors = {
+		Success: "green",
+		Error: "red",
+		Queued: "blue",
+		Pending: "orange",
+	};
+
+	frm.dashboard.add_indicator(__(`JoFotara: ${status}`), colors[status] || "gray");
 }
 
 function add_send_button(frm) {
 	const status = frm.doc.custom_jofotara_status;
 
-	// Show button for Pending, Error, or no status
-	if (!status || status === "Pending" || status === "Error") {
+	if (status !== "Success" && status !== "Queued") {
 		const button_label = status === "Error" ? __("Retry JoFotara") : __("Send to JoFotara");
 
+		// remove_custom_button ensures we don't have duplicate buttons if refresh is called twice
+		frm.remove_custom_button(button_label, __("Actions"));
+		
 		frm.add_custom_button(
 			button_label,
 			function () {
 				frappe.call({
 					method: "corex_fotara.jofotara.controller.send_to_jofotara",
-					args: {
-						invoice_name: frm.doc.name,
-					},
+					args: { invoice_name: frm.doc.name },
 					freeze: true,
 					freeze_message: __("Sending to JoFotara..."),
 					callback: function (r) {
-						frm.reload_doc();
-					},
-					error: function (r) {
-						frappe.msgprint({
-							title: __("Error"),
-							indicator: "red",
-							message: __("Failed to send invoice to JoFotara. Please check the error log."),
-						});
-						frm.reload_doc();
+						if(!r.exc) frm.reload_doc();
 					},
 				});
 			},
 			__("Actions")
 		);
 	}
-
 }
 
 function render_qr_preview(frm) {
 	const qr_data = frm.doc.custom_jofotara_qr;
-	const qr_wrapper = frm.fields_dict.custom_qr_preview;
+	const field = frm.fields_dict.custom_qr_preview;
 
-	if (!qr_wrapper || !qr_wrapper.$wrapper) return;
+	if (!field || !field.$wrapper) return;
 
-	// Clear existing content
-	qr_wrapper.$wrapper.empty();
+	// PERFORMANCE OPTIMIZATION: 
+	// If the QR is already rendered and data hasn't changed, do nothing.
+	if (field.$wrapper.attr('data-rendered-qr') === qr_data) {
+		return; 
+	}
+
+	field.$wrapper.empty();
 
 	if (!qr_data) {
-		qr_wrapper.$wrapper.html('<div class="text-muted">' + __("QR code will appear here after successful submission") + "</div>");
+		field.$wrapper.html(
+			`<div class="text-muted" style="padding: 15px; border: 1px dashed #d1d8dd; text-align: center; border-radius: 4px;">
+				${__("QR code will appear here after successful submission")}
+			</div>`
+		);
 		return;
 	}
 
-	// Create container for QR code
-	const container = $('<div id="jofotara-qr-container" style="text-align: center; padding: 10px;"></div>');
-	qr_wrapper.$wrapper.append(container);
+	// Create a unique container for this specific rendering
+	const container_id = `qr-container-${frm.doc.name}`;
+	field.$wrapper.append(`<div id="${container_id}" style="display: flex; flex-direction: column; align-items: center; padding: 10px;"></div>`);
 
-	// Generate QR code using qrcode.js library
-	try {
-		if (typeof QRCode !== "undefined") {
-			new QRCode(document.getElementById("jofotara-qr-container"), {
-				text: qr_data,
-				width: 200,
-				height: 200,
-				colorDark: "#000000",
-				colorLight: "#ffffff",
-				correctLevel: QRCode.CorrectLevel.M,
-			});
-
-			// Add label
-			container.append('<div class="text-muted mt-2" style="font-size: 12px;">' + __("Scan this QR code to verify the invoice") + "</div>");
-		} else {
-			// Fallback if QRCode library not loaded
-			container.html(
-				'<div class="alert alert-warning">' + __("QR code library not loaded. QR Data:") + "<br><code>" + frappe.utils.escape_html(qr_data) + "</code></div>"
-			);
-		}
-	} catch (e) {
-		console.error("Error generating QR code:", e);
-		container.html('<div class="alert alert-danger">' + __("Error generating QR code") + "</div>");
+	if (typeof QRCode !== "undefined") {
+		new QRCode(document.getElementById(container_id), {
+			text: qr_data,
+			width: 160,
+			height: 160,
+			correctLevel: QRCode.CorrectLevel.M,
+		});
+		field.$wrapper.append(`<div class="text-center text-muted mt-2" style="font-size: 11px;">${__("JoFotara Verified")}</div>`);
+		
+		// Mark as rendered to prevent flicker on next refresh
+		field.$wrapper.attr('data-rendered-qr', qr_data);
+	} else {
+		field.$wrapper.html(`<div class="alert alert-light"><code>${qr_data}</code></div>`);
 	}
 }
 
 function validate_vat_registration_and_taxes(frm) {
-	// Skip validation if no company selected
-	if (!frm.doc.company) {
-		return true;
-	}
+	if (!frm.doc.custom_jofotara_enabled) return true;
 
-	// Check if there are any taxes in the invoice
 	const has_taxes = frm.doc.taxes && frm.doc.taxes.length > 0;
+	const is_vat_registered = frm.doc.custom_jofotara_vat_registered;
 
-	// If no taxes, no need to validate
-	if (!has_taxes) {
-		return true;
+	if (has_taxes && !is_vat_registered) {
+		frappe.msgprint({
+			title: __("JoFotara Compliance"),
+			indicator: "red",
+			message: __("This company is not marked as VAT Registered. Please remove taxes or enable VAT Registration in Company settings."),
+		});
+		frappe.validated = false;
+		return false;
 	}
-
-	// Get company settings synchronously
-	return new Promise((resolve, reject) => {
-		frappe.db
-			.get_value("Company", frm.doc.company, ["custom_enable_jofotara", "custom_jofotara_vat_registered"])
-			.then((r) => {
-				// Skip validation if JoFotara is not enabled
-				if (!r.message || !r.message.custom_enable_jofotara) {
-					resolve(true);
-					return;
-				}
-
-				const vat_registered = r.message.custom_jofotara_vat_registered;
-
-				// If company is not VAT registered but has taxes, show error
-				if (!vat_registered && has_taxes) {
-					frappe.msgprint({
-						title: __("VAT Registration Required"),
-						indicator: "red",
-						message: __(
-							"<strong>Cannot add taxes to this invoice.</strong><br><br>" +
-							"The company <strong>{0}</strong> is not registered for VAT in JoFotara.<br><br>" +
-							"To add taxes to invoices, please enable <strong>VAT Registered</strong> in the Company settings.<br><br>" +
-							"<em>Path: Company → {0} → JoFotara Settings → VAT Registered</em>",
-							[frm.doc.company]
-						),
-					});
-					frappe.validated = false;
-					reject();
-					return;
-				}
-
-				resolve(true);
-			})
-			.catch((err) => {
-				console.error("Error validating VAT registration:", err);
-				resolve(true); // Don't block on error
-			});
-	});
+	return true;
 }

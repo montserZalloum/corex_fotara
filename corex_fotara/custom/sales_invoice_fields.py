@@ -18,6 +18,14 @@ def add_sales_invoice_jofotara_fields():
                 "hidden": 1,
                 "insert_after": "amended_from",
             },
+			{
+				"fieldname": "custom_jofotara_vat_registered",
+				"fieldtype": "Check",
+				"fetch_from": "company.custom_jofotara_vat_registered", # Pulls from Company
+				"hidden": 1,
+				"read_only": 1,
+				"insert_after": "custom_jofotara_enabled",
+			},
 			# JoFotara Section
 			{
 				"fieldname": "jofotara_section",

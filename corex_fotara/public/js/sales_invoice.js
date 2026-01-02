@@ -1,6 +1,5 @@
 // Copyright (c) 2024, Corex and contributors
 // For license information, please see license.txt
-console.log('first')
 frappe.ui.form.on("Sales Invoice", {
 	refresh: function (frm) {
 		const is_enabled = frm.doc.custom_jofotara_enabled;
@@ -21,10 +20,12 @@ frappe.ui.form.on("Sales Invoice", {
 	},
 
 	validate: function (frm) {
+		if (!validate_currency_for_jofotara(frm)) return false;
 		return validate_vat_registration_and_taxes(frm);
 	},
 
 	before_submit: function (frm) {
+		if (!validate_currency_for_jofotara(frm)) return false;
 		return validate_vat_registration_and_taxes(frm);
 	},
 });
@@ -111,6 +112,22 @@ function render_qr_preview(frm) {
 	} else {
 		field.$wrapper.html(`<div class="alert alert-light"><code>${qr_data}</code></div>`);
 	}
+}
+
+function validate_currency_for_jofotara(frm) {
+	if (!frm.doc.custom_jofotara_enabled) return true;
+
+	const currency = frm.doc.currency;
+	if (currency !== "JOD") {
+		frappe.msgprint({
+			title: __("JoFotara Requirement"),
+			indicator: "red",
+			message: __("JoFotara is enabled for this invoice. The currency must be 'JOD' (Jordanian Dinar) to proceed."),
+		});
+		frappe.validated = false;
+		return false;
+	}
+	return true;
 }
 
 function validate_vat_registration_and_taxes(frm) {

@@ -36,3 +36,5 @@
 "This invoice has already been successfully sent to JoFotara","تم إرسال هذه الفاتورة بالفعل بنجاح إلى جوفوترة"
 "This invoice has been submitted to JoFotara and cannot be cancelled. Please create a Return Invoice (Credit Note) instead to maintain consistency with the government backend.","تم إرسال هذه الفاتورة إلى جوفوترة ولا يمكن إلغاؤها. يرجى إنشاء فاتورة مرتجع (إشعار دائن) بدلاً من ذلك للحفاظ على التوافق مع النظام الحكومي."
 "UBL code (e.g., PCE, KGM, MTR, LTR)","رمز UBL (مثلاً PCE, KGM, MTR, LTR)"
+JoFotara Requirement,متطلبات جوفوترة
+JoFotara is enabled for this invoice. The currency must be 'JOD' (Jordanian Dinar) to proceed.,تم تفعيل خدمة JoFotara لهذه الفاتورة. يجب أن تكون العملة "JOD" (دينار أردني) للمتابعة.

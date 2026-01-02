@@ -61,12 +61,20 @@ def add_company_jofotara_fields():
 				"depends_on": "eval:doc.custom_enable_jofotara",
 				"description": "You are authorized to collect 16%, 4%, or 0% Sales Tax",
 			},
+			{
+				"fieldname": "custom_jofotara_save_logs",
+				"fieldtype": "Check",
+				"label": "Save JoFotara Logs",
+				"insert_after": "custom_jofotara_vat_registered",
+				"depends_on": "eval:doc.custom_enable_jofotara",
+				"description": "Save JoFotara logs to the database",
+			},
 			# API Credentials Section
 			{
 				"fieldname": "jofotara_credentials_section",
 				"fieldtype": "Section Break",
 				"label": "API Credentials",
-				"insert_after": "custom_jofotara_auto_send",
+				"insert_after": "custom_jofotara_save_logs",
 				"depends_on": "eval:doc.custom_enable_jofotara",
 			},
 			{

@@ -318,7 +318,13 @@ def _create_jofotara_log(
 	response: dict = None,
 	error: str = None,
 ):
-	"""Create a JoFotara Log entry."""
+	"""Create a JoFotara Log entry only if logging is enabled."""
+	company_doc = frappe.get_cached_doc("Company", company)
+
+	# Return early if save logs is not enabled
+	if not company_doc.custom_jofotara_save_logs:
+		return
+
 	log = frappe.new_doc("JoFotara Log")
 	log.invoice = invoice_name
 	log.company = company

@@ -146,7 +146,7 @@ def add_company_jofotara_fields():
 				"fieldtype": "Date",
 				"label": "Last Daily Seq Date",
 				"insert_after": "jofotara_cb2",
-				"hidden": 1,
+				"hidden": 0,
 				"read_only": 1,
 			},
 			{
@@ -154,7 +154,7 @@ def add_company_jofotara_fields():
 				"fieldtype": "Int",
 				"label": "Last Daily Seq No",
 				"insert_after": "custom_last_daily_seq_date",
-				"hidden": 1,
+				"hidden": 0,
 				"read_only": 1,
 			},
 			# UOM Mapping Section

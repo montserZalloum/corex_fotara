@@ -116,10 +116,11 @@
     {%- if totals._discount_amount_raw > 0 %}
     <cac:AllowanceCharge>
         <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
-        <cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>
+        <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
         <cbc:Amount currencyID="JOD">{{ totals.discount_amount }}</cbc:Amount>
     </cac:AllowanceCharge>
     {%- endif %}
+
 
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="JOD">{{ totals.total_tax }}</cbc:TaxAmount>
@@ -155,7 +156,6 @@
         <cac:AllowanceCharge>
             <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
             <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
-            <!-- Use the Fraction (0.10), not Percentage (10.0) -->
             <cbc:MultiplierFactorNumeric>{{ item.discount_factor }}</cbc:MultiplierFactorNumeric>
             <cbc:Amount currencyID="JOD">{{ item.discount_amount }}</cbc:Amount>
             <cbc:BaseAmount currencyID="JOD">{{ item.gross_amount }}</cbc:BaseAmount>

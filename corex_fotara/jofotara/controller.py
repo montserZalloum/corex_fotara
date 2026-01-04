@@ -144,10 +144,6 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 	"""
 	Async worker for XML generation and API submission.
 	Creates JoFotara Log on completion/error.
-
-	Args:
-		invoice_name: The name of the Sales Invoice
-		identifiers: Dict with jofotara_id, jofotara_uuid, jofotara_icv
 	"""
 	invoice = frappe.get_doc("Sales Invoice", invoice_name)
 	company = frappe.get_cached_doc("Company", invoice.company)
@@ -173,31 +169,72 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 
 		result = client.send_invoice(xml_content)
 
+		# ---------------------------------------------------------
+		# التعديل الجوهري هنا: فحص محتوى الرد وليس فقط حالة الاتصال
+		# ---------------------------------------------------------
+		
+		# 1. Check if HTTP request was successful
 		if result["success"]:
-			# Extract QR code from response (if available)
-			qr_code = result["response"].get("EINV_QR") or ""
+			response_data = result["response"]
+			einv_results = response_data.get("EINV_RESULTS", {})
+			api_status = einv_results.get("status") # PASS, WARNING, or ERROR
 
-			# Update invoice status
-			frappe.db.set_value(
-				"Sales Invoice",
-				invoice_name,
-				{
-					"custom_jofotara_status": "Success",
-					"custom_jofotara_qr": qr_code,
-				},
-				update_modified=False,
-			)
+			# 2. Check the LOGICAL status returned by JoFotara
+			if api_status == "ERROR":
+				# --- CASE A: HTTP 200 BUT VALIDATION FAILED ---
+				
+				# Extract error messages
+				errors = einv_results.get("ERRORS", [])
+				error_msg = "\n".join([e.get("EINV_MESSAGE", "Unknown Error") for e in errors])
+				
+				# Update status to Error
+				frappe.db.set_value(
+					"Sales Invoice",
+					invoice_name,
+					{"custom_jofotara_status": "Error"},
+					update_modified=False,
+				)
 
-			# Create success log
-			_create_jofotara_log(
-				invoice_name=invoice_name,
-				company=invoice.company,
-				status="Success",
-				xml=xml_content,
-				response=result["response"],
-			)
+				# Create Error Log
+				_create_jofotara_log(
+					invoice_name=invoice_name,
+					company=invoice.company,
+					status="Error",
+					xml=xml_content,
+					response=response_data,
+					error=f"JoFotara Validation Error: {error_msg}",
+				)
+				
+				submission_status = "Error"
+
+			else:
+				# --- CASE B: SUCCESS (PASS or WARNING) ---
+				
+				qr_code = response_data.get("EINV_QR") or ""
+
+				frappe.db.set_value(
+					"Sales Invoice",
+					invoice_name,
+					{
+						"custom_jofotara_status": "Success",
+						"custom_jofotara_qr": qr_code,
+					},
+					update_modified=False,
+				)
+
+				_create_jofotara_log(
+					invoice_name=invoice_name,
+					company=invoice.company,
+					status="Success",
+					xml=xml_content,
+					response=response_data,
+				)
+				
+				submission_status = "Success"
+
 		else:
-			# Update invoice status to Error
+			# --- CASE C: HTTP/CONNECTION ERROR ---
+			
 			frappe.db.set_value(
 				"Sales Invoice",
 				invoice_name,
@@ -205,30 +242,32 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 				update_modified=False,
 			)
 
-			# Create error log
 			_create_jofotara_log(
 				invoice_name=invoice_name,
 				company=invoice.company,
 				status="Error",
 				xml=xml_content,
-				response=result["response"],
-				error=result.get("error", "Unknown error"),
+				response=result.get("response", {}),
+				error=result.get("error", "Unknown Connection Error"),
 			)
+			
+			submission_status = "Error"
 
 		frappe.db.commit()
 
+		# Notify User
 		if triggering_user:
 			frappe.publish_realtime(
 				event="jofotara_submission_complete",
 				message={
 					"invoice_name": invoice_name,
-					"status": "Success" if result["success"] else "Error"
+					"status": submission_status
 				},
 				user=triggering_user
 			)
 
 	except Exception as e:
-		# Update invoice status to Error
+		# --- CASE D: SYSTEM EXCEPTION ---
 		frappe.db.set_value(
 			"Sales Invoice",
 			invoice_name,
@@ -236,7 +275,6 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 			update_modified=False,
 		)
 
-		# Create error log with traceback
 		_create_jofotara_log(
 			invoice_name=invoice_name,
 			company=invoice.company,
@@ -246,13 +284,12 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 			error=traceback.format_exc(),
 		)
 
-		# Log to error log
 		frappe.log_error(
 			message=traceback.format_exc(),
 			title=f"JoFotara Error: {invoice_name}",
 		)
 
-		frappe.db.commit() # Ensure error logs are committed
+		frappe.db.commit()
 
 		if triggering_user:
 			frappe.publish_realtime(
@@ -263,7 +300,6 @@ def process_jofotara_submission(invoice_name: str, identifiers: dict, triggering
 				},
 				user=triggering_user
 			)
-	
 
 
 def _validate_before_submission(invoice, company):

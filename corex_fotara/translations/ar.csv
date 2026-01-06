@@ -38,3 +38,29 @@
 "UBL code (e.g., PCE, KGM, MTR, LTR)","رمز UBL (مثلاً PCE, KGM, MTR, LTR)"
 JoFotara Requirement,متطلبات جوفوترة
 JoFotara is enabled for this invoice. The currency must be 'JOD' (Jordanian Dinar) to proceed.,تم تفعيل خدمة JoFotara لهذه الفاتورة. يجب أن تكون العملة "JOD" (دينار أردني) للمتابعة.
+JoFotara Settings,إعدادات جوفوترة
+Basic Settings,الإعدادات الأساسية
+Enable JoFotara,تفعيل جوفوترة
+"Master switch. If OFF, all JoFotara logic is bypassed.","المفتاح الرئيسي. إذا تم إيقافه، سيتم تجاوز كافة عمليات جوفوترة."
+Auto-Send on Submit,إرسال تلقائي عند الاعتماد
+Automatically send invoice to JoFotara when submitted,إرسال الفاتورة تلقائيًا إلى جوفوترة عند الاعتماد
+Registered for Sales Tax (VAT),مسجل لضريبة المبيعات (ضريبة القيمة المضافة)
+"You are authorized to collect 16%, 4%, or 0% Sales Tax","أنت مخول بتحصيل ضريبة مبيعات بنسبة 16% أو 4% أو 0%"
+Save JoFotara Logs,حفظ سجلات جوفوترة
+Save JoFotara logs to the database,حفظ سجلات جوفوترة في قاعدة البيانات
+API Credentials,بيانات اعتماد واجهة برمجة التطبيقات
+Default City Code,رمز المدينة الافتراضي
+Fallback city code if customer address is missing,رمز المدينة البديل في حال نقص عنوان العميل
+Counter Settings,إعدادات العداد
+Last Daily Seq No,آخر رقم تسلسل يومي
+Starter ICV,قيمة ICV الابتدائية
+Starting point for the ICV counter,نقطة البداية لعداد ICV
+Latest Sent ICV,آخر ICV مرسل
+Last used ICV counter (updated automatically),آخر عداد ICV مستخدم (يتم تحديثه تلقائيًا)
+UOM Mapping,ربط وحدات القياس
+Automatically send invoice to JoFotara when submitted.
+"Map Corex UOMs to JoFotara UBL codes (e.g., Nos → PCE, Kg → KGM)","ربط وحدات قياس Corex بأكواد UBL الخاصة بجوفوترة (مثلاً: Nos -> PCE، Kg -> KGM)"
+Automatically send invoice to JoFotara when submitted.,إرسال الفاتورة تلقائيًا إلى جوفوترة عند الاعتماد.
+Client ID from JoFotara portal,رقم تعريف العميل من بوابة جوفوترة
+Income Source Sequence,تسلسل مصدر الدخل
+Branch ID from JoFotara portal (تسلسل مصدر الدخل),رقم تعريف الفرع من بوابة جوفوترة (تسلسل مصدر الدخل)

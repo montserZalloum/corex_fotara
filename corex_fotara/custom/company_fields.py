@@ -164,7 +164,7 @@ def add_company_jofotara_fields():
 				"label": "UOM Mapping",
 				"insert_after": "custom_last_daily_seq_no",
 				"depends_on": "eval:doc.custom_enable_jofotara",
-				"description": "Map ERPNext UOMs to JoFotara UBL codes (e.g., Nos → PCE, Kg → KGM)",
+				"description": "Map Corex UOMs to JoFotara UBL codes (e.g., Nos → PCE, Kg → KGM)",
 			},
 			{
 				"fieldname": "custom_uom_mapping",

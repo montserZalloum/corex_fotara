@@ -41,45 +41,15 @@ These are points where the two documentation sources directly contradict each ot
 
 > **Decision needed:** Official docs are silent. The extra subtotals may be harmless or may cause XSD issues.
 
-### 1.9 Line-Item Discount Structure
 
-| Source | What it says |
-|--------|-------------|
-| **Official Docs** (section 6.1) | `Price/PriceAmount` = "Unit Price Exclusive of Tax." No mention of discount block inside Price. |
-| **Reference** (section 11, gotcha #11) | `AllowanceCharge` inside `<cac:Price>` is always present, even when discount = 0. |
-| **Codebase** | NET PRICE approach — no `AllowanceCharge` inside `<cac:Price>` at all. Conditional `AllowanceCharge` as sibling of `TaxTotal` (different XML location). |
+### 2.3 Special Sales Tax Type (3rd Digit = 3) — Resolved
 
-```xml
-<!-- Reference approach (inside Price, always present): -->
-<cac:Price>
-    <cbc:PriceAmount currencyID="JO">{unit_price}</cbc:PriceAmount>
-    <cac:AllowanceCharge>
-        <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
-        <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
-        <cbc:Amount currencyID="JO">{discount}</cbc:Amount>
-    </cac:AllowanceCharge>
-</cac:Price>
+Previously the codebase modeled the taxpayer classification as a company-level boolean (`custom_jofotara_vat_registered`), which could only produce `1` (income) or `2` (sales) — never `3` (special). Replaced with a 3-way Select field `custom_jofotara_taxpayer_type` (`Income` / `General Sales` / `Special Sales`) on Company, mirrored on Sales Invoice via `fetch_from` so callers can override per invoice if a specific transaction falls under a different category.
 
-<!-- Codebase approach (NET PRICE, no discount block): -->
-<cac:Price>
-    <cbc:PriceAmount currencyID="JOD">{{ item.unit_price }}</cbc:PriceAmount>
-</cac:Price>
-```
-
-> **Decision needed:** The official docs are silent on discount structure. If the API validates the presence of `AllowanceCharge` inside `Price`, the NET PRICE approach will fail.
-
----
-
-
-### 2.3 Special Sales Tax Type (3rd Digit = 3) Not Supported
-
-- **Official Docs** (section 4.1): Lists codes `013` (Local, Cash, Special) and `023` (Local, Credit, Special) for special sales tax invoices.
-- **Codebase:** `xml_generator.py:119-120` only produces `1` (income) or `2` (sales):
-  ```python
-  tax_type = "2" if vat_registered else "1"
-  ```
-
-> **Impact:** Cannot generate invoices for taxpayers subject to special sales tax.
+- Company default: `company_fields.py` — `custom_jofotara_taxpayer_type`, mandatory when JoFotara is enabled.
+- Per-invoice override: `sales_invoice_fields.py` — same field, user-editable, fetched from company.
+- Mapping: `xml_generator.py:_get_invoice_type_name()` — `{Income: "1", General Sales: "2", Special Sales: "3"}`, invoice wins over company.
+- Cleanup: `patches/remove_vat_registered_field.py` drops the old Custom Field records.
 
 ### 2.4 Telephone Marked as Required but Rendered Conditionally
 

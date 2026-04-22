@@ -65,23 +65,6 @@ These are points where the two documentation sources directly contradict each ot
 
 These are things the PHP SDK reference mentions that the official docs are completely silent about. Since they come from a working implementation that has been tested against the real API, they carry practical weight.
 
-### 3.3 Anonymous Customer Must Default to `NIN` + Empty String
-
-- **Official Docs:** Lists customer ID as a required field but doesn't specify anonymous behavior.
-- **Reference** (section 6, gotcha #10): "Even without customer info, `AccountingCustomerParty` must exist with `NIN` + empty ID."
-- **Codebase:** `xml_generator.py:196` sets `id_value = None` for anonymous cash customers, and `invoice.xml:67` skips the `PartyIdentification` block entirely.
-
-```xml
-<!-- Reference says anonymous customer should look like: -->
-<cac:PartyIdentification>
-    <cbc:ID schemeID="NIN"></cbc:ID>
-</cac:PartyIdentification>
-
-<!-- Codebase skips the block entirely for anonymous customers -->
-```
-
-> **Risk: High.** Cash/walk-in customers with no ID on file would produce invalid XML.
-
 ### 3.4 XML Escaping Not Applied to All Text Fields
 
 - **Official Docs:** Not mentioned.
@@ -114,26 +97,3 @@ These are things the PHP SDK reference mentions that the official docs are compl
   ```
 
 > **Risk: Low-Medium.** A malformed 200 response would be treated as success.
-
-### 3.8 Customer `CompanyID` Inside `PartyTaxScheme`
-
-- **Official Docs:** Not explicitly shown in XML structure.
-- **Reference** (section 11 XML): Includes `<cbc:CompanyID>{customer_tin}</cbc:CompanyID>` inside the customer's `PartyTaxScheme`.
-- **Codebase:** `invoice.xml:83-86` has the `PartyTaxScheme` block but without `CompanyID`:
-
-```xml
-<!-- Reference: -->
-<cac:PartyTaxScheme>
-    <cbc:CompanyID>{customer_tin}</cbc:CompanyID>
-    <cac:TaxScheme>
-        <cbc:ID>VAT</cbc:ID>
-    </cac:TaxScheme>
-</cac:PartyTaxScheme>
-
-<!-- Codebase: -->
-<cac:PartyTaxScheme>
-    <cac:TaxScheme>
-        <cbc:ID>VAT</cbc:ID>
-    </cac:TaxScheme>
-</cac:PartyTaxScheme>
-```

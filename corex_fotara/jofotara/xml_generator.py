@@ -115,9 +115,14 @@ class JoFotaraXMLGenerator:
         else:
             is_credit = "1"
 
-        # 3rd Digit: Taxpayer Type (Sales=2, Income=1)
-        vat_registered = self.company.get("custom_jofotara_vat_registered")
-        tax_type = "2" if vat_registered else "1"
+        # 3rd Digit: Taxpayer Type (Income=1, General Sales=2, Special Sales=3)
+        # Invoice-level value overrides company default; falls back to Income.
+        taxpayer_type = (
+            self.invoice.get("custom_jofotara_taxpayer_type")
+            or self.company.get("custom_jofotara_taxpayer_type")
+            or "Income"
+        )
+        tax_type = {"Income": "1", "General Sales": "2", "Special Sales": "3"}.get(taxpayer_type, "1")
 
         return f"{is_export}{is_credit}{tax_type}"
 

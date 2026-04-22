@@ -42,22 +42,6 @@ These are points where the two documentation sources directly contradict each ot
 > **Decision needed:** Official docs are silent. The extra subtotals may be harmless or may cause XSD issues.
 
 
-### 2.3 Special Sales Tax Type (3rd Digit = 3) — Resolved
-
-Previously the codebase modeled the taxpayer classification as a company-level boolean (`custom_jofotara_vat_registered`), which could only produce `1` (income) or `2` (sales) — never `3` (special). Replaced with a 3-way Select field `custom_jofotara_taxpayer_type` (`Income` / `General Sales` / `Special Sales`) on Company, mirrored on Sales Invoice via `fetch_from` so callers can override per invoice if a specific transaction falls under a different category.
-
-- Company default: `company_fields.py` — `custom_jofotara_taxpayer_type`, mandatory when JoFotara is enabled.
-- Per-invoice override: `sales_invoice_fields.py` — same field, user-editable, fetched from company.
-- Mapping: `xml_generator.py:_get_invoice_type_name()` — `{Income: "1", General Sales: "2", Special Sales: "3"}`, invoice wins over company.
-- Cleanup: `patches/remove_vat_registered_field.py` drops the old Custom Field records.
-
-### 2.4 Telephone Marked as Required but Rendered Conditionally
-
-- **Official Docs** (section 5.2): Lists Telephone as "Required" for the customer.
-- **Codebase:** `invoice.xml:94-97` wraps the phone block in `{%- if buyer.phone %}`, omitting it entirely when no phone exists.
-
-> **Impact:** Could cause validation failure if the API enforces this.
-
 ### 2.5 Validation Checks Customer Tax ID Instead of Customer Name
 
 - **Official Docs** (section 5.2): "If the invoice is Credit OR Cash > 10,000 JOD, the Customer **Name** is Mandatory."

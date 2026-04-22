@@ -18,14 +18,6 @@ def add_sales_invoice_jofotara_fields():
                 "hidden": 1,
                 "insert_after": "amended_from",
             },
-			{
-				"fieldname": "custom_jofotara_vat_registered",
-				"fieldtype": "Check",
-				"fetch_from": "company.custom_jofotara_vat_registered", # Pulls from Company
-				"hidden": 1,
-				"read_only": 1,
-				"insert_after": "custom_jofotara_enabled",
-			},
 			# JoFotara Section
 			{
 				"fieldname": "jofotara_section",
@@ -36,10 +28,19 @@ def add_sales_invoice_jofotara_fields():
 				"depends_on": "eval:doc.custom_jofotara_enabled == 1"
 			},
 			{
+				"fieldname": "custom_jofotara_taxpayer_type",
+				"fieldtype": "Select",
+				"label": "Taxpayer Type",
+				"insert_after": "jofotara_section",
+				"options": "Income\nGeneral Sales\nSpecial Sales",
+				"fetch_from": "company.custom_jofotara_taxpayer_type",
+				"description": "Defaults from Company. Override per invoice only if this transaction falls under a different taxpayer category.",
+			},
+			{
 				"fieldname": "custom_jofotara_payment_type",
 				"fieldtype": "Select",
 				"label": "JoFotara Payment Type",
-				"insert_after": "jofotara_section",
+				"insert_after": "custom_jofotara_taxpayer_type",
 				"options": "Cash\nCredit\nAuto",
 				"default": "Cash",
 				"description": "",

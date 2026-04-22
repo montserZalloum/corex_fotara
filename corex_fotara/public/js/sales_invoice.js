@@ -134,13 +134,13 @@ function validate_vat_registration_and_taxes(frm) {
 	if (!frm.doc.custom_jofotara_enabled) return true;
 
 	const has_taxes = frm.doc.taxes && frm.doc.taxes.length > 0;
-	const is_vat_registered = frm.doc.custom_jofotara_vat_registered;
+	const taxpayer_type = frm.doc.custom_jofotara_taxpayer_type;
 
-	if (has_taxes && !is_vat_registered) {
+	if (has_taxes && taxpayer_type === "Income") {
 		frappe.msgprint({
 			title: __("JoFotara Compliance"),
 			indicator: "red",
-			message: __("This company is not marked as VAT Registered. Please remove taxes or enable VAT Registration in Company settings."),
+			message: __("Taxpayer Type is set to 'Income' (not registered for sales tax). Please remove taxes or change the Taxpayer Type to 'General Sales' or 'Special Sales'."),
 		});
 		frappe.validated = false;
 		return false;

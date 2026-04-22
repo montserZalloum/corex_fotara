@@ -5,7 +5,7 @@
 "Corex Fotara","كوريكس فواتير"
 "Credit Note must be created against an existing Sales Invoice (Return Against field is empty).","يجب إنشاء إشعار دائن مقابل فاتورة مبيعات موجودة (حقل 'مرتجع مقابل' فارغ)."
 "Credit Note queued for JoFotara","تم وضع الإشعار الدائن في قائمة الانتظار لـ جوفوترة"
-"Customer Tax ID is required for credit sales or invoices over 10,000 JOD. Please update the customer record.","الرقم الضريبي للعميل مطلوب للمبيعات الآجلة أو الفواتير التي تزيد عن 10,000 دينار. يرجى تحديث سجل العميل."
+"Customer Name is required for credit sales or invoices over 10,000 JOD. Please update the customer record.","اسم العميل مطلوب للمبيعات الآجلة أو الفواتير التي تزيد عن 10,000 دينار. يرجى تحديث سجل العميل."
 "Error Details","تفاصيل الخطأ"
 "Error Traceback","تتبع الخطأ"
 "Failed to connect to JoFotara API. Please check your internet connection.","فشل الاتصال بواجهة برمجة تطبيقات جوفوترة. يرجى التحقق من اتصال الإنترنت."

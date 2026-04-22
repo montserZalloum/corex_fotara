@@ -337,10 +337,10 @@ def _validate_before_submission(invoice, company):
 
 	if is_credit_invoice or grand_total > 10000:
 		customer = frappe.get_doc("Customer", invoice.customer)
-		if not customer.tax_id:
+		if not customer.customer_name:
 			frappe.throw(
 				_(
-					"Customer Tax ID is required for credit sales or invoices over 10,000 JOD. "
+					"Customer Name is required for credit sales or invoices over 10,000 JOD. "
 					"Please update the customer record."
 				)
 			)

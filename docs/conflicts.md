@@ -42,19 +42,6 @@ These are points where the two documentation sources directly contradict each ot
 > **Decision needed:** Official docs are silent. The extra subtotals may be harmless or may cause XSD issues.
 
 
-### 2.5 Validation Checks Customer Tax ID Instead of Customer Name
-
-- **Official Docs** (section 5.2): "If the invoice is Credit OR Cash > 10,000 JOD, the Customer **Name** is Mandatory."
-- **Codebase:** `controller.py:338-346` validates `customer.tax_id` instead:
-  ```python
-  if is_credit_invoice or grand_total > 10000:
-      customer = frappe.get_doc("Customer", invoice.customer)
-      if not customer.tax_id:
-          frappe.throw(...)
-  ```
-
-> **Impact:** The code enforces the wrong field.
-
 ### 2.6 Z/O Tax Category Based on Geography Instead of Item Properties
 
 - **Official Docs** (section 6.2): Z = Exempt items, O = Zero Rated / Out of Scope items. Recommends handling Z correctly for exempt goods.
@@ -72,66 +59,11 @@ These are points where the two documentation sources directly contradict each ot
 >
 > The fix should derive Z/O from the **Item Tax Template** or a dedicated tax category field, not from `_get_customer_country()`.
 
-### 2.7 `PayableAmount` Formula Difference
-
-- **Official Docs** (section 8): `PayableAmount = TaxInclusiveAmount - PrepaidAmount`
-- **Codebase:** `xml_generator.py:365`: `payable = tax_inclusive - allowance_total`
-
-> **Impact:** Subtracts allowance (discount) instead of prepaid amounts. For most invoices (no prepayment, no global discount) the result is the same, but the formula doesn't match the spec.
-
 ---
 
 ## 3. Extras from Reference — Not in Official Docs, Not in Codebase
 
 These are things the PHP SDK reference mentions that the official docs are completely silent about. Since they come from a working implementation that has been tested against the real API, they carry practical weight.
-
-### 3.1 API Response Handling — Two Response Formats
-
-- **Official Docs:** Say nothing about API response structure.
-- **Reference** (section 2): Documents two response formats the API has returned over time.
-- **Codebase:** Only handles Format B (`EINV_*` keys).
-
-**Format A (newer):**
-```json
-{
-  "validationResults": { "status": "PASS", "errorMessages": [], ... },
-  "invoiceStatus": "SUBMITTED",
-  "submittedInvoice": "<base64>",
-  "qrCode": "<data>",
-  "invoiceNumber": "...",
-  "invoiceUUID": "..."
-}
-```
-
-**Format B (older) — the only one the codebase handles:**
-```json
-{
-  "EINV_RESULTS": { "status": "...", "ERRORS": [], ... },
-  "EINV_STATUS": "SUBMITTED",
-  "EINV_SINGED_INVOICE": "<base64>",
-  "EINV_QR": "<data>",
-  "EINV_NUM": "...",
-  "EINV_INV_UUID": "..."
-}
-```
-
-The codebase (`controller.py:179`) only reads Format B keys:
-```python
-einv_results = response_data.get("EINV_RESULTS", {})
-api_status = einv_results.get("status")
-```
-
-If the API returns Format A, `EINV_RESULTS` would be `{}`, `api_status` would be `None`, and the code would fall into the success branch regardless of actual validation status.
-
-> **Risk: High.** The codebase could silently treat a failed invoice as successful.
-
-### 3.2 `ALREADY_SUBMITTED` Should Be Treated as Success
-
-- **Official Docs:** Not mentioned.
-- **Reference** (gotcha #21): "If you submit the same invoice twice (same ID + UUID), the API returns `ALREADY_SUBMITTED` — treat as success."
-- **Codebase:** Does not check `EINV_STATUS` / `invoiceStatus` at all. Only checks `EINV_RESULTS.status`.
-
-> **Risk: High.** On manual retry of a successfully-sent invoice, the codebase would not recognize the success.
 
 ### 3.3 Anonymous Customer Must Default to `NIN` + Empty String
 

@@ -143,6 +143,7 @@
         <cbc:TaxExclusiveAmount currencyID="JOD">{{ totals.tax_exclusive }}</cbc:TaxExclusiveAmount>
         <cbc:TaxInclusiveAmount currencyID="JOD">{{ totals.tax_inclusive }}</cbc:TaxInclusiveAmount>
         <cbc:AllowanceTotalAmount currencyID="JOD">{{ totals.allowance_total }}</cbc:AllowanceTotalAmount>
+        <cbc:PrepaidAmount currencyID="JOD">{{ totals.prepaid_amount }}</cbc:PrepaidAmount>
         <cbc:PayableAmount currencyID="JOD">{{ totals.payable }}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
 

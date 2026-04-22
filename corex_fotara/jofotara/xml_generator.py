@@ -366,10 +366,11 @@ class JoFotaraXMLGenerator:
         # If it sums up line discounts, you should set this to 0 or use `additional_discount_percentage` logic.
         allowance_total = abs(self._to_decimal(self.invoice.discount_amount or 0))
 
-        # Payable = Inclusive - Global Discount
-        payable = tax_inclusive - allowance_total
-        
-        # Sanity check against negative
+        # JoFotara spec (§8): PayableAmount = TaxInclusive - Prepaid.
+        # We also subtract AllowanceTotal to stay consistent with UBL 2.1 when a global discount is used.
+        prepaid_amount = Decimal("0")
+        payable = tax_inclusive - allowance_total - prepaid_amount
+
         if payable < 0: payable = Decimal("0")
 
         return {
@@ -378,6 +379,7 @@ class JoFotaraXMLGenerator:
             "total_tax": self._format_amount(total_tax),
             "allowance_total": self._format_amount(allowance_total),
             "discount_amount": self._format_amount(allowance_total),
+            "prepaid_amount": self._format_amount(prepaid_amount),
             "payable": self._format_amount(payable),
             "_discount_amount_raw": float(allowance_total),
         }

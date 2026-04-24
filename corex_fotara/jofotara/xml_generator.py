@@ -108,12 +108,7 @@ class JoFotaraXMLGenerator:
 
         # 2nd Digit: Payment (Cash=1, Credit=2)
         payment_type = self.invoice.get("custom_jofotara_payment_type") or "Cash"
-        if payment_type == "Auto":
-            is_credit = "1" if self.invoice.is_pos else "2"
-        elif payment_type == "Credit":
-            is_credit = "2"
-        else:
-            is_credit = "1"
+        is_credit = "2" if payment_type == "Credit" else "1"
 
         # 3rd Digit: Taxpayer Type (Income=1, General Sales=2, Special Sales=3)
         # Invoice-level value overrides company default; falls back to Income.
@@ -195,8 +190,9 @@ class JoFotaraXMLGenerator:
 
         # Logic for Cash Sales (Hidden ID)
         payment_type = self.invoice.get("custom_jofotara_payment_type") or "Cash"
-        is_cash = payment_type == "Cash" or (payment_type == "Auto" and self.invoice.is_pos)
-        
+        is_cash = payment_type == "Cash"
+
+
         if is_cash and not id_value:
              id_value = None # Template will skip ID tag
         

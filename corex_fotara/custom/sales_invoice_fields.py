@@ -10,6 +10,14 @@ def add_sales_invoice_jofotara_fields():
 	custom_fields = {
 		"Sales Invoice": [
 			{
+				"fieldname": "custom_is_cash",
+				"fieldtype": "Check",
+				"label": "Is Cash",
+				"insert_after": "company_tax_id",
+				"default": "1",
+				"description": "If checked, payment type is Cash and a Payment Entry is auto-created on submit. Otherwise, payment type is Credit.",
+			},
+			{
                 "fieldname": "custom_jofotara_enabled",
                 "fieldtype": "Check",
                 "label": "JoFotara Enabled",
@@ -34,6 +42,7 @@ def add_sales_invoice_jofotara_fields():
 				"insert_after": "jofotara_section",
 				"options": "Income\nGeneral Sales\nSpecial Sales",
 				"fetch_from": "company.custom_jofotara_taxpayer_type",
+				"hidden": 1,
 				"description": "Defaults from Company. Override per invoice only if this transaction falls under a different taxpayer category.",
 			},
 			{
@@ -41,9 +50,10 @@ def add_sales_invoice_jofotara_fields():
 				"fieldtype": "Select",
 				"label": "JoFotara Payment Type",
 				"insert_after": "custom_jofotara_taxpayer_type",
-				"options": "Cash\nCredit\nAuto",
+				"options": "Cash\nCredit",
 				"default": "Cash",
-				"description": "",
+				"read_only": 1,
+				"description": "Driven by the 'Is Cash' checkbox.",
 			},
 			# QR Code Section
 			{

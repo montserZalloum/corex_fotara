@@ -326,11 +326,7 @@ def _validate_before_submission(invoice, company):
 	payment_type = invoice.get("custom_jofotara_payment_type") or "Cash"
 
 	# Determine if this is effectively a credit invoice
-	is_credit_invoice = False
-	if payment_type == "Credit":
-		is_credit_invoice = True
-	elif payment_type == "Auto" and not invoice.is_pos:
-		is_credit_invoice = True
+	is_credit_invoice = payment_type == "Credit"
 
 	# Validation for credit sales or high value invoices
 	grand_total = flt(abs(invoice.grand_total))

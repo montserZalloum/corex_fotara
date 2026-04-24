@@ -24,7 +24,11 @@ doctype_js = {"Sales Invoice": "public/js/sales_invoice.js"}
 
 doc_events = {
 	"Sales Invoice": {
-		"on_submit": "corex_fotara.jofotara.controller.on_sales_invoice_submit",
+		"validate": "corex_fotara.custom.sales_invoice_payment.sync_payment_type_from_is_cash",
+		"on_submit": [
+			"corex_fotara.custom.sales_invoice_payment.create_cash_payment_entry",
+			"corex_fotara.jofotara.controller.on_sales_invoice_submit",
+		],
 		"before_cancel": "corex_fotara.jofotara.controller.on_sales_invoice_cancel",
 	}
 }

@@ -1,22 +1,41 @@
 // Copyright (c) 2024, Corex and contributors
 // For license information, please see license.txt
 frappe.ui.form.on("Sales Invoice", {
+	onload: function (frm) {
+		if (frm.is_new() && frm.doc.is_return && frm.doc.custom_is_cash) {
+			frm.set_value("custom_is_cash", 0);
+		}
+	},
+
 	refresh: function (frm) {
 		const is_enabled = frm.doc.custom_jofotara_enabled;
 		const is_historical_success = frm.doc.custom_jofotara_status === "Success";
 
 		if (is_enabled || is_historical_success) {
 			// 1. Clear previous indicators to prevent stacking
-			frm.dashboard.clear_comment_count && frm.dashboard.clear_indicators(); 
-			
+			frm.dashboard.clear_comment_count && frm.dashboard.clear_indicators();
+
 			add_jofotara_indicator(frm);
 			render_qr_preview(frm);
-			
+
 			if (frm.doc.docstatus === 1 && is_enabled) {
 				add_send_button(frm);
 			}
 		}
-		
+
+	},
+
+	custom_is_cash: function (frm) {
+		frm.set_value(
+			"custom_jofotara_payment_type",
+			frm.doc.custom_is_cash ? "Cash" : "Credit"
+		);
+	},
+
+	is_return: function (frm) {
+		if (frm.is_new() && frm.doc.is_return && frm.doc.custom_is_cash) {
+			frm.set_value("custom_is_cash", 0);
+		}
 	},
 
 	validate: function (frm) {

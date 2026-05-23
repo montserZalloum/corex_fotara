@@ -49,3 +49,10 @@ after_migrate = [
 default_log_clearing_doctypes = {
 	"JoFotara Log": 90,
 }
+
+# Jinja
+# -----
+# Expose helpers to print formats and other Jinja templates
+jinja = {
+	"methods": ["corex_fotara.utils.qr_to_base64"],
+}

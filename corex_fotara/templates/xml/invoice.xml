@@ -19,7 +19,7 @@
     {%- if billing_reference %}
     <cac:BillingReference>
         <cac:InvoiceDocumentReference>
-            <cbc:ID>{{ billing_reference.id }}</cbc:ID>
+            <cbc:ID>{{ billing_reference.id | e }}</cbc:ID>
             <cbc:UUID>{{ billing_reference.uuid }}</cbc:UUID>
             <cbc:DocumentDescription>{{ billing_reference.total }}</cbc:DocumentDescription>
         </cac:InvoiceDocumentReference>
@@ -51,7 +51,7 @@
                 </cac:Country>
             </cac:PostalAddress>
             <cac:PartyTaxScheme>
-                <cbc:CompanyID>{{ seller.tax_id }}</cbc:CompanyID>
+                <cbc:CompanyID>{{ seller.tax_id | e }}</cbc:CompanyID>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
@@ -66,7 +66,7 @@
         <cac:Party>
             {%- if buyer.id_value %}
             <cac:PartyIdentification>
-                <cbc:ID schemeID="{{ buyer.id_scheme }}">{{ buyer.id_value }}</cbc:ID>
+                <cbc:ID schemeID="{{ buyer.id_scheme | e }}">{{ buyer.id_value | e }}</cbc:ID>
             </cac:PartyIdentification>
             {%- endif %}
             <cac:PostalAddress>
@@ -93,7 +93,7 @@
         </cac:Party>
         {%- if buyer.phone %}
         <cac:AccountingContact>
-            <cbc:Telephone>{{ buyer.phone }}</cbc:Telephone>
+            <cbc:Telephone>{{ buyer.phone | e }}</cbc:Telephone>
         </cac:AccountingContact>
         {%- endif %}
     </cac:AccountingCustomerParty>
@@ -101,7 +101,7 @@
     <cac:SellerSupplierParty>
         <cac:Party>
             <cac:PartyIdentification>
-                <cbc:ID>{{ income_source_sequence }}</cbc:ID>
+                <cbc:ID>{{ income_source_sequence | e }}</cbc:ID>
             </cac:PartyIdentification>
         </cac:Party>
     </cac:SellerSupplierParty>
@@ -143,6 +143,7 @@
         <cbc:TaxExclusiveAmount currencyID="JOD">{{ totals.tax_exclusive }}</cbc:TaxExclusiveAmount>
         <cbc:TaxInclusiveAmount currencyID="JOD">{{ totals.tax_inclusive }}</cbc:TaxInclusiveAmount>
         <cbc:AllowanceTotalAmount currencyID="JOD">{{ totals.allowance_total }}</cbc:AllowanceTotalAmount>
+        <cbc:PrepaidAmount currencyID="JOD">{{ totals.prepaid_amount }}</cbc:PrepaidAmount>
         <cbc:PayableAmount currencyID="JOD">{{ totals.payable }}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
 

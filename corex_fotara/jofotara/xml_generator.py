@@ -108,16 +108,16 @@ class JoFotaraXMLGenerator:
 
         # 2nd Digit: Payment (Cash=1, Credit=2)
         payment_type = self.invoice.get("custom_jofotara_payment_type") or "Cash"
-        if payment_type == "Auto":
-            is_credit = "1" if self.invoice.is_pos else "2"
-        elif payment_type == "Credit":
-            is_credit = "2"
-        else:
-            is_credit = "1"
+        is_credit = "2" if payment_type == "Credit" else "1"
 
-        # 3rd Digit: Taxpayer Type (Sales=2, Income=1)
-        vat_registered = self.company.get("custom_jofotara_vat_registered")
-        tax_type = "2" if vat_registered else "1"
+        # 3rd Digit: Taxpayer Type (Income=1, General Sales=2, Special Sales=3)
+        # Invoice-level value overrides company default; falls back to Income.
+        taxpayer_type = (
+            self.invoice.get("custom_jofotara_taxpayer_type")
+            or self.company.get("custom_jofotara_taxpayer_type")
+            or "Income"
+        )
+        tax_type = {"Income": "1", "General Sales": "2", "Special Sales": "3"}.get(taxpayer_type, "1")
 
         return f"{is_export}{is_credit}{tax_type}"
 
@@ -190,8 +190,9 @@ class JoFotaraXMLGenerator:
 
         # Logic for Cash Sales (Hidden ID)
         payment_type = self.invoice.get("custom_jofotara_payment_type") or "Cash"
-        is_cash = payment_type == "Cash" or (payment_type == "Auto" and self.invoice.is_pos)
-        
+        is_cash = payment_type == "Cash"
+
+
         if is_cash and not id_value:
              id_value = None # Template will skip ID tag
         
@@ -361,10 +362,11 @@ class JoFotaraXMLGenerator:
         # If it sums up line discounts, you should set this to 0 or use `additional_discount_percentage` logic.
         allowance_total = abs(self._to_decimal(self.invoice.discount_amount or 0))
 
-        # Payable = Inclusive - Global Discount
-        payable = tax_inclusive - allowance_total
-        
-        # Sanity check against negative
+        # JoFotara spec (§8): PayableAmount = TaxInclusive - Prepaid.
+        # We also subtract AllowanceTotal to stay consistent with UBL 2.1 when a global discount is used.
+        prepaid_amount = Decimal("0")
+        payable = tax_inclusive - allowance_total - prepaid_amount
+
         if payable < 0: payable = Decimal("0")
 
         return {
@@ -373,6 +375,7 @@ class JoFotaraXMLGenerator:
             "total_tax": self._format_amount(total_tax),
             "allowance_total": self._format_amount(allowance_total),
             "discount_amount": self._format_amount(allowance_total),
+            "prepaid_amount": self._format_amount(prepaid_amount),
             "payable": self._format_amount(payable),
             "_discount_amount_raw": float(allowance_total),
         }

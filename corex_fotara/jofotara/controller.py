@@ -326,21 +326,17 @@ def _validate_before_submission(invoice, company):
 	payment_type = invoice.get("custom_jofotara_payment_type") or "Cash"
 
 	# Determine if this is effectively a credit invoice
-	is_credit_invoice = False
-	if payment_type == "Credit":
-		is_credit_invoice = True
-	elif payment_type == "Auto" and not invoice.is_pos:
-		is_credit_invoice = True
+	is_credit_invoice = payment_type == "Credit"
 
 	# Validation for credit sales or high value invoices
 	grand_total = flt(abs(invoice.grand_total))
 
 	if is_credit_invoice or grand_total > 10000:
 		customer = frappe.get_doc("Customer", invoice.customer)
-		if not customer.tax_id:
+		if not customer.customer_name:
 			frappe.throw(
 				_(
-					"Customer Tax ID is required for credit sales or invoices over 10,000 JOD. "
+					"Customer Name is required for credit sales or invoices over 10,000 JOD. "
 					"Please update the customer record."
 				)
 			)

@@ -72,12 +72,25 @@ class JoFotaraAPIClient:
 			)
 
 			# Try to parse response as JSON
-			try:
-				response_data = response.json() if response.text else {}
-			except json.JSONDecodeError:
-				response_data = {"raw_response": response.text}
+			parse_error = None
+			if not response.text:
+				response_data = {}
+				parse_error = _("API returned an empty response body")
+			else:
+				try:
+					response_data = response.json()
+				except json.JSONDecodeError:
+					response_data = {"raw_response": response.text}
+					parse_error = _("API returned a non-JSON response body")
 
 			if response.status_code == 200:
+				if parse_error:
+					return {
+						"success": False,
+						"response": response_data,
+						"status_code": response.status_code,
+						"error": parse_error,
+					}
 				return {
 					"success": True,
 					"response": response_data,

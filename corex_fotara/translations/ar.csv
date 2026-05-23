@@ -5,7 +5,7 @@
 "Corex Fotara","كوريكس فواتير"
 "Credit Note must be created against an existing Sales Invoice (Return Against field is empty).","يجب إنشاء إشعار دائن مقابل فاتورة مبيعات موجودة (حقل 'مرتجع مقابل' فارغ)."
 "Credit Note queued for JoFotara","تم وضع الإشعار الدائن في قائمة الانتظار لـ جوفوترة"
-"Customer Tax ID is required for credit sales or invoices over 10,000 JOD. Please update the customer record.","الرقم الضريبي للعميل مطلوب للمبيعات الآجلة أو الفواتير التي تزيد عن 10,000 دينار. يرجى تحديث سجل العميل."
+"Customer Name is required for credit sales or invoices over 10,000 JOD. Please update the customer record.","اسم العميل مطلوب للمبيعات الآجلة أو الفواتير التي تزيد عن 10,000 دينار. يرجى تحديث سجل العميل."
 "Error Details","تفاصيل الخطأ"
 "Error Traceback","تتبع الخطأ"
 "Failed to connect to JoFotara API. Please check your internet connection.","فشل الاتصال بواجهة برمجة تطبيقات جوفوترة. يرجى التحقق من اتصال الإنترنت."
@@ -32,7 +32,7 @@
 "Send to JoFotara","إرسال إلى جوفوترة"
 "Sending to JoFotara...","جارٍ الإرسال إلى جوفوترة..."
 "Submission Time","وقت الإرسال"
-"This company is not marked as VAT Registered. Please remove taxes or enable VAT Registration in Company settings.","هذه الشركة غير مسجلة في ضريبة القيمة المضافة. يرجى إزالة الضرائب أو تفعيل التسجيل الضريبي في إعدادات الشركة."
+"Taxpayer Type is set to 'Income' (not registered for sales tax). Please remove taxes or change the Taxpayer Type to 'General Sales' or 'Special Sales'.","فئة المكلف مضبوطة على 'دخل' (غير مسجل في ضريبة المبيعات). يرجى إزالة الضرائب أو تغيير فئة المكلف إلى 'مبيعات عامة' أو 'مبيعات خاصة'."
 "This invoice has already been successfully sent to JoFotara","تم إرسال هذه الفاتورة بالفعل بنجاح إلى جوفوترة"
 "This invoice has been submitted to JoFotara and cannot be cancelled. Please create a Return Invoice (Credit Note) instead to maintain consistency with the government backend.","تم إرسال هذه الفاتورة إلى جوفوترة ولا يمكن إلغاؤها. يرجى إنشاء فاتورة مرتجع (إشعار دائن) بدلاً من ذلك للحفاظ على التوافق مع النظام الحكومي."
 "UBL code (e.g., PCE, KGM, MTR, LTR)","رمز UBL (مثلاً PCE, KGM, MTR, LTR)"
@@ -44,8 +44,12 @@ Enable JoFotara,تفعيل جوفوترة
 "Master switch. If OFF, all JoFotara logic is bypassed.","المفتاح الرئيسي. إذا تم إيقافه، سيتم تجاوز كافة عمليات جوفوترة."
 Auto-Send on Submit,إرسال تلقائي عند الاعتماد
 Automatically send invoice to JoFotara when submitted,إرسال الفاتورة تلقائيًا إلى جوفوترة عند الاعتماد
-Registered for Sales Tax (VAT),مسجل لضريبة المبيعات (ضريبة القيمة المضافة)
-"You are authorized to collect 16%, 4%, or 0% Sales Tax","أنت مخول بتحصيل ضريبة مبيعات بنسبة 16% أو 4% أو 0%"
+Taxpayer Type,فئة المكلف
+"Income = not registered for sales tax; General Sales = VAT registered (16%/4%/0%); Special Sales = subject to special sales tax","دخل = غير مسجل في ضريبة المبيعات؛ مبيعات عامة = مسجل في ضريبة القيمة المضافة (16%/4%/0%)؛ مبيعات خاصة = خاضع لضريبة المبيعات الخاصة"
+Income,دخل
+General Sales,مبيعات عامة
+Special Sales,مبيعات خاصة
+"Defaults from Company. Override per invoice only if this transaction falls under a different taxpayer category.","يتم جلبها من الشركة. قم بتجاوزها لكل فاتورة فقط إذا كانت هذه المعاملة تقع ضمن فئة مكلف مختلفة."
 Save JoFotara Logs,حفظ سجلات جوفوترة
 Save JoFotara logs to the database,حفظ سجلات جوفوترة في قاعدة البيانات
 API Credentials,بيانات اعتماد واجهة برمجة التطبيقات

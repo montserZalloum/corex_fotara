@@ -157,9 +157,7 @@
         <cac:AllowanceCharge>
             <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
             <cbc:AllowanceChargeReason>DISCOUNT</cbc:AllowanceChargeReason>
-            <cbc:MultiplierFactorNumeric>{{ item.discount_factor }}</cbc:MultiplierFactorNumeric>
             <cbc:Amount currencyID="JOD">{{ item.discount_amount }}</cbc:Amount>
-            <cbc:BaseAmount currencyID="JOD">{{ item.gross_amount }}</cbc:BaseAmount>
         </cac:AllowanceCharge>
         {%- endif %}
 

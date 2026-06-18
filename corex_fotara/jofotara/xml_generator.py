@@ -257,10 +257,50 @@ class JoFotaraXMLGenerator:
             
         return 0.0
 
+    def _get_fallback_unit_price(self, item) -> float:
+        """
+        Resolve a non-zero unit price for a free/bonus line.
+
+        JoFotara rejects a zero PriceAmount with "Unit price is missing", so a free
+        line must still carry the item's real unit price (the full value is then
+        cancelled out by a line-level discount). We look, in order, at the line's
+        own price fields, the invoice's selling price list, then any selling price.
+        """
+        for field in ("price_list_rate", "rate", "net_rate"):
+            value = abs(flt(item.get(field)))
+            if value > 0:
+                return value
+
+        item_code = item.get("item_code")
+        if not item_code:
+            return 0.0
+
+        price_list = self.invoice.get("selling_price_list")
+        if price_list:
+            rate = frappe.db.get_value(
+                "Item Price",
+                {"item_code": item_code, "price_list": price_list, "selling": 1},
+                "price_list_rate",
+            )
+            if rate and flt(rate) > 0:
+                return flt(rate)
+
+        rate = frappe.db.get_value(
+            "Item Price",
+            {"item_code": item_code, "selling": 1},
+            "price_list_rate",
+        )
+        return flt(rate) if rate and flt(rate) > 0 else 0.0
+
     def _process_line_items(self) -> list:
         """
         Process items using NET PRICE logic to avoid validation errors.
         We send the Price After Discount as the Unit Price, and skip the AllowanceCharge tag.
+
+        Exception: a free/bonus line (qty > 0 but a zero net amount) must still carry a
+        non-zero unit price, otherwise JoFotara rejects it ("Unit price is missing").
+        For those lines we send the item's real unit price plus a full-value discount,
+        so the net LineExtensionAmount stays zero.
         """
         items = []
         for idx, item in enumerate(self.invoice.items, 1):
@@ -271,26 +311,38 @@ class JoFotaraXMLGenerator:
             # Instead of sending Gross Price + Discount, we send Net Price directly.
             # Net Amount = (Qty * Price) - Discount
             # In ERPNext: item.amount is usually the Net Amount (Tax Exclusive)
-            
+
             line_extension_dec = self._to_decimal(abs(flt(item.amount)))
-            
+
             # Calculate Net Unit Price (Price after discount)
             if qty > 0:
                 unit_price_dec = line_extension_dec / qty_dec
             else:
                 unit_price_dec = Decimal("0")
-                
+
             # Quantize the price to 9 decimals
             unit_price_dec = unit_price_dec.quantize(self.PRECISION, rounding=ROUND_HALF_UP)
-            
+
             # Recalculate Line Extension from the rounded Net Price to ensure match
             # This ensures (Qty * NetPrice) == LineExtension exactly
             line_extension_dec = (qty_dec * unit_price_dec).quantize(self.PRECISION, rounding=ROUND_HALF_UP)
 
+            # --- FREE / BONUS LINE HANDLING ---
+            # qty > 0 with a zero net amount means the line is free. Recover the item's
+            # real unit price and discount it in full so the net line stays zero.
+            discount_dec = Decimal("0")
+            gross_dec = line_extension_dec
+            if qty > 0 and line_extension_dec == 0:
+                fallback_price = self._to_decimal(self._get_fallback_unit_price(item))
+                if fallback_price > 0:
+                    unit_price_dec = fallback_price
+                    gross_dec = (qty_dec * unit_price_dec).quantize(self.PRECISION, rounding=ROUND_HALF_UP)
+                    discount_dec = gross_dec  # full discount keeps line_extension at 0
+
             # Tax Calculation
             tax_rate = self._get_item_tax_rate(item)
             tax_category = "S" if tax_rate > 0 else ("Z" if self._get_customer_country() == "Jordan" else "O")
-            
+
             tax_amount_dec = self._calculate_tax(line_extension_dec, tax_rate)
             rounding_amount_dec = line_extension_dec + tax_amount_dec
 
@@ -299,24 +351,26 @@ class JoFotaraXMLGenerator:
                 "name": item.item_name,
                 "qty": self._format_amount(qty_dec),
                 "uom_code": self.uom_mapping.get(item.uom, "PCE"),
-                
-                # Send NET PRICE here
+
+                # Send NET PRICE here (or the recovered unit price for free lines)
                 "unit_price": self._format_amount(unit_price_dec),
-                
-                # Zero out discount fields so XML template doesn't generate AllowanceCharge
-                "discount_amount": self._format_amount(0),
-                "gross_amount": self._format_amount(0),
-                "discount_factor": self._format_amount(0),
-                "_discount_amount_raw": 0, 
+
+                # Discount fields drive the line-level AllowanceCharge.
+                # They stay zero for normal lines and only populate for free lines.
+                "discount_amount": self._format_amount(discount_dec),
+                "gross_amount": self._format_amount(gross_dec),
+                "_discount_amount_raw": float(discount_dec),
 
                 "line_extension": self._format_amount(line_extension_dec),
                 "tax_amount": self._format_amount(tax_amount_dec),
                 "rounding_amount": self._format_amount(rounding_amount_dec),
                 "tax_category": tax_category,
                 "tax_percent": str(tax_rate),
-                
+
                 "_line_extension": line_extension_dec,
                 "_tax_amount": tax_amount_dec,
+                "_gross": gross_dec,          # qty * price (before line discount)
+                "_discount": discount_dec,    # line-level allowance amount
             })
         return items
 
@@ -343,29 +397,34 @@ class JoFotaraXMLGenerator:
         } for g in tax_groups.values()]
 
     def _calculate_totals(self) -> dict:
-        tax_exclusive = Decimal("0")
+        # JoFotara computes TaxExclusiveAmount as the GROSS subtotal (Σ qty*price,
+        # before any discount), and expects every discount — line-level and
+        # document-level — to be aggregated into AllowanceTotalAmount:
+        #   TaxInclusiveAmount = TaxExclusiveAmount - AllowanceTotalAmount + TaxAmount
+        tax_exclusive = Decimal("0")   # Σ (qty * price) gross
         total_tax = Decimal("0")
-        
+        line_discount_total = Decimal("0")
+
         # Sum from lines (Bottom-up accuracy)
         for item in self._cached_items:
-            tax_exclusive += item["_line_extension"]
+            tax_exclusive += item["_gross"]
             total_tax += item["_tax_amount"]
+            line_discount_total += item["_discount"]
 
-        tax_inclusive = tax_exclusive + total_tax
+        # DOCUMENT-LEVEL DISCOUNT:
+        # invoice.discount_amount is ERPNext's "Additional Discount" on the grand total.
+        # It is separate from the line discounts already captured above.
+        doc_discount = abs(self._to_decimal(self.invoice.discount_amount or 0))
 
-        # GLOBAL DISCOUNT LOGIC:
-        # In ERPNext, invoice.discount_amount usually refers to "Additional Discount" 
-        # applied on the Grand Total (Net or Gross).
-        # We must NOT include line-level discounts here again.
-        
-        # NOTE: Verify if `discount_amount` in your ERPNext setup is "Additional" only.
-        # If it sums up line discounts, you should set this to 0 or use `additional_discount_percentage` logic.
-        allowance_total = abs(self._to_decimal(self.invoice.discount_amount or 0))
+        # AllowanceTotalAmount carries ALL allowances (line + document level).
+        allowance_total = line_discount_total + doc_discount
+
+        # TaxInclusive = gross - allowances + tax  (== net + tax)
+        tax_inclusive = tax_exclusive - allowance_total + total_tax
 
         # JoFotara spec (§8): PayableAmount = TaxInclusive - Prepaid.
-        # We also subtract AllowanceTotal to stay consistent with UBL 2.1 when a global discount is used.
         prepaid_amount = Decimal("0")
-        payable = tax_inclusive - allowance_total - prepaid_amount
+        payable = tax_inclusive - prepaid_amount
 
         if payable < 0: payable = Decimal("0")
 
@@ -374,8 +433,10 @@ class JoFotaraXMLGenerator:
             "tax_inclusive": self._format_amount(tax_inclusive),
             "total_tax": self._format_amount(total_tax),
             "allowance_total": self._format_amount(allowance_total),
-            "discount_amount": self._format_amount(allowance_total),
+            # The standalone document-level AllowanceCharge element represents the
+            # document discount only; line discounts live on their own lines.
+            "discount_amount": self._format_amount(doc_discount),
             "prepaid_amount": self._format_amount(prepaid_amount),
             "payable": self._format_amount(payable),
-            "_discount_amount_raw": float(allowance_total),
+            "_discount_amount_raw": float(doc_discount),
         }

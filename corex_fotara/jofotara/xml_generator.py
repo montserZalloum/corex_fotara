@@ -303,7 +303,8 @@ class JoFotaraXMLGenerator:
         so the net LineExtensionAmount stays zero.
         """
         items = []
-        for idx, item in enumerate(self.invoice.items, 1):
+        line_number = 0
+        for item in self.invoice.items:
             qty = abs(flt(item.qty))
             qty_dec = self._to_decimal(qty)
 
@@ -338,6 +339,8 @@ class JoFotaraXMLGenerator:
                     unit_price_dec = fallback_price
                     gross_dec = (qty_dec * unit_price_dec).quantize(self.PRECISION, rounding=ROUND_HALF_UP)
                     discount_dec = gross_dec  # full discount keeps line_extension at 0
+                else:
+                    continue  # skip items with no price at all
 
             # Tax Calculation
             tax_rate = self._get_item_tax_rate(item)
@@ -346,8 +349,9 @@ class JoFotaraXMLGenerator:
             tax_amount_dec = self._calculate_tax(line_extension_dec, tax_rate)
             rounding_amount_dec = line_extension_dec + tax_amount_dec
 
+            line_number += 1
             items.append({
-                "idx": idx,
+                "idx": line_number,
                 "name": item.item_name,
                 "qty": self._format_amount(qty_dec),
                 "uom_code": self.uom_mapping.get(item.uom, "PCE"),
